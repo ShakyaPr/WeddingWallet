@@ -6,6 +6,13 @@ import { verifyAccess } from '../_lib/access'
 
 const app = new Hono<{ Bindings: Env }>().basePath('/api')
 
+// Return errors as JSON so the frontend can show a real message instead of
+// choking on Hono's default plain-text "Internal Server Error".
+app.onError((err, c) => {
+  console.error('API error:', err)
+  return c.json({ error: (err as Error).message || 'Internal error' }, 500)
+})
+
 // Same-origin in production; cors kept permissive for local `wrangler pages dev`.
 app.use('*', cors())
 
