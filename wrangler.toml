@@ -1,0 +1,12 @@
+# Cloudflare Pages configuration.
+# With this file, `nodejs_compat` and the compatibility date are applied
+# automatically for local dev, `wrangler pages deploy`, AND Git-connected
+# Pages builds — so you don't have to set the flag in the dashboard by hand.
+name = "weddingwallet"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-07-18"
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets are NOT stored here. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+# in the Cloudflare Pages dashboard (Settings → Environment variables) for
+# production, and in `.dev.vars` for local development.

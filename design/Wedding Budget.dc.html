@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&amp;family=Mulish:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Mulish', system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #3A2C2E; }
+  a { color: #A05C6A; text-decoration: none; }
+  a:hover { color: #7E4451; }
+  input, select, textarea, button { font-family: inherit; }
+  input:focus, select:focus { outline: none; border-color: #B87A86 !important; }
+  .wb-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes wbFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes wbSheet { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</helmet>
+
+<div style="min-height:100vh;width:100%;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;background:radial-gradient(120% 90% at 50% 0%, #F3E7E4 0%, #ECDFDC 45%, #E4D6D6 100%);">
+  <div style="position:relative;width:100%;max-width:412px;height:860px;background:#FCFAF9;border-radius:38px;box-shadow:0 30px 80px -20px rgba(74,45,52,0.35),0 0 0 1px rgba(74,45,52,0.05);overflow:hidden;display:flex;flex-direction:column;">
+
+    <!-- Top bar -->
+    <div style="flex:0 0 auto;padding:20px 22px 14px;background:#FCFAF9;border-bottom:1px solid #F1E7E4;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;letter-spacing:0.2px;line-height:1;">{{ couple }}</div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:2.4px;text-transform:uppercase;color:#B49398;margin-top:6px;">Wedding Budget</div>
+        </div>
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#C99BA4,#7E4451);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;color:#fff;font-size:16px;font-weight:600;">P<span style="opacity: 0.55;">&amp;</span>S</div>
+      </div>
+    </div>
+
+    <!-- Scroll area -->
+    <div class="wb-scroll" style="flex:1 1 auto;overflow-y:auto;padding:18px 18px 108px;">
+
+      <!-- ============ DASHBOARD ============ -->
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+      <div style="animation:wbFade .3s ease;">
+        <!-- layout switcher -->
+        <div style="display:flex;gap:4px;padding:4px;background:#F2E9E6;border-radius:13px;margin-bottom:16px;">
+          <sc-for list="{{ dashSegs }}" as="seg" hint-placeholder-count="3">
+            <button onClick="{{ seg.onClick }}" style="flex:1;border:none;cursor:pointer;padding:8px 4px;border-radius:10px;font-size:11.5px;font-weight:700;letter-spacing:0.3px;transition:all .2s;background: {{ seg.bg }};color: {{ seg.color }};box-shadow: {{ seg.shadow }};">{{ seg.label }}</button>
+          </sc-for>
+        </div>
+
+        <!-- Layout A: cards -->
+        <sc-if value="{{ isLayoutCards }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div style="position:relative;border-radius:24px;padding:24px 22px;background:linear-gradient(150deg,#7E4451 0%,#A05C6A 55%,#C99BA4 100%);color:#fff;overflow:hidden;box-shadow:0 16px 34px -14px rgba(126,68,81,0.55);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;opacity:.8;">Total paid</div>
+                <div style="font-family:'Playfair Display',serif;font-size:34px;font-weight:600;margin-top:6px;line-height:1;">{{ heroPaidFmt }}</div>
+                <div style="font-size:12.5px;opacity:.82;margin-top:8px;">of {{ heroCommittedFmt }} committed</div>
+              </div>
+              <div style="flex:0 0 auto;width:78px;height:78px;border-radius:50%;background: {{ ringStyle }};display:flex;align-items:center;justify-content:center;">
+                <div style="width:58px;height:58px;border-radius:50%;background:#8B4D5A;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                  <div style="font-size:16px;font-weight:800;">{{ heroPct }}%</div>
+                  <div style="font-size:8.5px;letter-spacing:1px;opacity:.75;">PAID</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:18px;padding-top:15px;border-top:1px solid rgba(255,255,255,0.18);display:flex;justify-content:space-between;">
+              <div><div style="font-size:10px;letter-spacing:1px;opacity:.72;text-transform:uppercase;">Still to pay</div><div style="font-size:16px;font-weight:800;margin-top:3px;">{{ heroBalanceFmt }}</div></div>
+              <div style="text-align:right;"><div style="font-size:10px;letter-spacing:1px;opacity:.72;text-transform:uppercase;">Est. budget</div><div style="font-size:16px;font-weight:800;margin-top:3px;">{{ heroBudgetFmt }}</div></div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:14px;">
+            <div style="background:#fff;border:1px solid #F1E7E4;border-radius:17px;padding:15px 15px 14px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+              <div style="font-size:10.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#B49398;">Categories</div>
+              <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:600;margin-top:5px;">{{ catCount }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #F1E7E4;border-radius:17px;padding:15px 15px 14px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+              <div style="font-size:10.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#B49398;">Payments</div>
+              <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:600;margin-top:5px;">{{ payCount }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #F1E7E4;border-radius:17px;padding:15px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+              <div style="font-size:10.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#B49398;">Committed</div>
+              <div style="font-size:17px;font-weight:800;margin-top:5px;color:#7E4451;">{{ heroCommittedFmt }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #F1E7E4;border-radius:17px;padding:15px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+              <div style="font-size:10.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#B49398;">Vs budget</div>
+              <div style="font-size:17px;font-weight:800;margin-top:5px;color: {{ overBudgetColor }};">{{ overBudgetFmt }}</div>
+            </div>
+          </div>
+
+          <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:600;margin:22px 2px 12px;">Where it's going</div>
+          <div style="background:#fff;border:1px solid #F1E7E4;border-radius:18px;padding:6px 16px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+            <sc-for list="{{ spentCats }}" as="c" hint-placeholder-count="4">
+              <div style="padding:12px 0;border-bottom:1px solid #F5EEEB;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <div style="display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background: {{ c.sliceColor }};"></span><span style="font-size:13.5px;font-weight:700;">{{ c.name }}</span></div>
+                  <span style="font-size:13px;font-weight:800;">{{ c.paidFmt }}</span>
+                </div>
+                <div style="height:7px;border-radius:6px;background:#F1E7E4;overflow:hidden;"><div style="height:100%;border-radius:6px;width: {{ c.sharePct }}%;background: {{ c.sliceColor }};"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- Layout B: progress -->
+        <sc-if value="{{ isLayoutProgress }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="flex:1;background:#fff;border:1px solid #F1E7E4;border-radius:16px;padding:13px 14px;text-align:center;"><div style="font-size:9.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:#B49398;">Paid</div><div style="font-size:15px;font-weight:800;margin-top:4px;">{{ heroPaidFmt }}</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #F1E7E4;border-radius:16px;padding:13px 14px;text-align:center;"><div style="font-size:9.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:#B49398;">To pay</div><div style="font-size:15px;font-weight:800;margin-top:4px;color:#A05C6A;">{{ heroBalanceFmt }}</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #F1E7E4;border-radius:16px;padding:13px 14px;text-align:center;"><div style="font-size:9.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:#B49398;">Committed</div><div style="font-size:15px;font-weight:800;margin-top:4px;">{{ heroCommittedFmt }}</div></div>
+          </div>
+          <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:600;margin:4px 2px 12px;">Payment progress</div>
+          <sc-for list="{{ categories }}" as="c" hint-placeholder-count="5">
+            <div onClick="{{ c.onClick }}" style="cursor:pointer;background:#fff;border:1px solid #F1E7E4;border-radius:18px;padding:15px 16px;margin-bottom:11px;box-shadow:0 6px 16px rgba(58,44,46,0.04);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:14.5px;font-weight:700;">{{ c.name }}</span>
+                <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background: {{ c.status.bg }};color: {{ c.status.color }};">{{ c.status.label }}</span>
+              </div>
+              <div style="font-size:12px;color:#9A868A;margin-bottom:10px;">{{ c.paidFmt }} of {{ c.quoteFmt }}</div>
+              <div style="height:8px;border-radius:6px;background:#F1E7E4;overflow:hidden;"><div style="height:100%;border-radius:6px;width: {{ c.paidPct }}%;background:linear-gradient(90deg,#A05C6A,#C99BA4);"></div></div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- Layout C: charts -->
+        <sc-if value="{{ isLayoutCharts }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div style="background:#fff;border:1px solid #F1E7E4;border-radius:20px;padding:20px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+            <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600;margin-bottom:16px;">Spend by category</div>
+            <div style="display:flex;align-items:center;gap:20px;">
+              <div style="flex:0 0 auto;width:120px;height:120px;border-radius:50%;background: {{ donutCategoryStyle }};display:flex;align-items:center;justify-content:center;">
+                <div style="width:66px;height:66px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;"><div style="font-size:15px;font-weight:800;">{{ heroPaidShortFmt }}</div><div style="font-size:8px;letter-spacing:1px;color:#B49398;">TOTAL</div></div>
+              </div>
+              <div style="flex:1;">
+                <sc-for list="{{ spentCats }}" as="c" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+                    <span style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;"><span style="width:8px;height:8px;border-radius:2px;background: {{ c.sliceColor }};"></span>{{ c.name }}</span>
+                    <span style="font-size:11px;font-weight:700;color:#9A868A;">{{ c.sharePct }}%</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #F1E7E4;border-radius:20px;padding:20px;margin-top:14px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+            <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600;margin-bottom:16px;">Who's paying</div>
+            <div style="display:flex;align-items:center;gap:20px;">
+              <div style="flex:0 0 auto;width:120px;height:120px;border-radius:50%;background: {{ donutPeopleStyle }};display:flex;align-items:center;justify-content:center;">
+                <div style="width:66px;height:66px;border-radius:50%;background:#fff;"></div>
+              </div>
+              <div style="flex:1;">
+                <sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+                    <span style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;"><span style="width:8px;height:8px;border-radius:2px;background: {{ p.color }};"></span>{{ p.shortName }}</span>
+                    <span style="font-size:11px;font-weight:700;color:#9A868A;">{{ p.pct }}%</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #F1E7E4;border-radius:20px;padding:20px;margin-top:14px;box-shadow:0 6px 18px rgba(58,44,46,0.04);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600;">Committed vs budget</div><span style="font-size:12px;font-weight:800;color: {{ overBudgetColor }};">{{ overBudgetFmt }}</span></div>
+            <div style="font-size:11px;color:#9A868A;margin-bottom:5px;">Budget {{ heroBudgetFmt }}</div>
+            <div style="height:10px;border-radius:7px;background:#F1E7E4;overflow:hidden;margin-bottom:12px;"><div style="height:100%;background:#C9B48A;width:100%;"></div></div>
+            <div style="font-size:11px;color:#9A868A;margin-bottom:5px;">Committed {{ heroCommittedFmt }}</div>
+            <div style="height:10px;border-radius:7px;background:#F1E7E4;overflow:hidden;"><div style="height:100%;border-radius:7px;background:linear-gradient(90deg,#7E4451,#A05C6A);width: {{ committedBarPct }}%;"></div></div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ============ BUDGET LIST ============ -->
+      <sc-if value="{{ isBudget }}" hint-placeholder-val="{{ true }}">
+      <div style="animation:wbFade .3s ease;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;">Budget items</div>
+          <button onClick="{{ openCategoryModal }}" style="border:none;cursor:pointer;background:#7E4451;color:#fff;font-size:12.5px;font-weight:700;padding:9px 15px;border-radius:22px;">+ Add</button>
+        </div>
+        <sc-for list="{{ categories }}" as="c" hint-placeholder-count="5">
+          <div onClick="{{ c.onClick }}" style="cursor:pointer;background:#fff;border:1px solid #F1E7E4;border-radius:20px;padding:17px 17px 15px;margin-bottom:12px;box-shadow:0 8px 20px rgba(58,44,46,0.05);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+              <div>
+                <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:600;">{{ c.name }}</div>
+                <div style="font-size:12px;color:#9A868A;margin-top:2px;">{{ c.vendor }}</div>
+              </div>
+              <span style="flex:0 0 auto;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:20px;background: {{ c.status.bg }};color: {{ c.status.color }};">{{ c.status.label }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:14px;gap:6px;">
+              <div><div style="font-size:9.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Budget</div><div style="font-size:13.5px;font-weight:700;margin-top:3px;">{{ c.budgetFmt }}</div></div>
+              <div><div style="font-size:9.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Quoted</div><div style="font-size:13.5px;font-weight:700;margin-top:3px;color: {{ c.quoteColor }};">{{ c.quoteFmt }}</div></div>
+              <div><div style="font-size:9.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Paid</div><div style="font-size:13.5px;font-weight:700;margin-top:3px;color:#5E7A58;">{{ c.paidFmt }}</div></div>
+              <div style="text-align:right;"><div style="font-size:9.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Balance</div><div style="font-size:13.5px;font-weight:800;margin-top:3px;color:#A05C6A;">{{ c.balanceFmt }}</div></div>
+            </div>
+            <div style="height:7px;border-radius:6px;background:#F1E7E4;overflow:hidden;margin-top:13px;"><div style="height:100%;border-radius:6px;width: {{ c.paidPct }}%;background:linear-gradient(90deg,#A05C6A,#C99BA4);"></div></div>
+            <sc-if value="{{ c.overBudget }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-size:11px;font-weight:700;color:#A65454;background:#F8E7E7;display:inline-block;padding:3px 9px;border-radius:14px;">Over budget by {{ c.overByFmt }}</div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- ============ PAYMENT LOG ============ -->
+      <sc-if value="{{ isPayments }}" hint-placeholder-val="{{ true }}">
+      <div style="animation:wbFade .3s ease;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;">Payment log</div>
+          <button onClick="{{ openPaymentModal }}" style="border:none;cursor:pointer;background:#7E4451;color:#fff;font-size:12.5px;font-weight:700;padding:9px 15px;border-radius:22px;">+ Record</button>
+        </div>
+        <div style="background:linear-gradient(135deg,#F3E7E4,#EADBD8);border-radius:16px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#8B6169;">Total recorded</span>
+          <span style="font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:#7E4451;">{{ heroPaidFmt }}</span>
+        </div>
+        <sc-for list="{{ payments }}" as="p" hint-placeholder-count="5">
+          <div style="display:flex;gap:13px;background:#fff;border:1px solid #F1E7E4;border-radius:17px;padding:14px 15px;margin-bottom:10px;box-shadow:0 6px 16px rgba(58,44,46,0.04);">
+            <div style="flex:0 0 auto;width:44px;height:44px;border-radius:13px;background: {{ p.tint }};display:flex;flex-direction:column;align-items:center;justify-content:center;color: {{ p.sliceColor }};"><div style="font-size:15px;font-weight:800;line-height:1;">{{ p.day }}</div><div style="font-size:8.5px;font-weight:700;letter-spacing:0.5px;">{{ p.mon }}</div></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;gap:8px;">
+                <span style="font-size:14px;font-weight:700;">{{ p.item }}</span>
+                <span style="font-size:14px;font-weight:800;white-space:nowrap;">{{ p.amountFmt }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;gap:8px;">
+                <span style="font-size:11.5px;color:#9A868A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ p.catName }} · {{ p.vendor }}</span>
+                <span style="flex:0 0 auto;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;background: {{ p.payerTint }};color: {{ p.payerColor }};">{{ p.payerShort }}</span>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- ============ VENDORS ============ -->
+      <sc-if value="{{ isVendors }}" hint-placeholder-val="{{ true }}">
+      <div style="animation:wbFade .3s ease;">
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;margin-bottom:14px;">Vendors</div>
+        <sc-for list="{{ vendors }}" as="v" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #F1E7E4;border-radius:20px;padding:17px;margin-bottom:12px;box-shadow:0 8px 20px rgba(58,44,46,0.05);">
+            <div style="display:flex;align-items:flex-start;gap:13px;">
+              <div style="flex:0 0 auto;width:46px;height:46px;border-radius:50%;background: {{ v.tint }};color: {{ v.color }};display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:19px;font-weight:600;">{{ v.initial }}</div>
+              <div style="flex:1;">
+                <div style="font-size:16px;font-weight:700;">{{ v.name }}</div>
+                <div style="font-size:12px;color:#9A868A;margin-top:1px;">{{ v.item }}</div>
+                <sc-if value="{{ v.hasContact }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:#8B6169;margin-top:7px;font-weight:600;letter-spacing:0.2px;">{{ v.contact }}</div></sc-if>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:14px;padding-top:13px;border-top:1px solid #F5EEEB;">
+              <div><div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#B49398;letter-spacing:0.5px;">Quoted</div><div style="font-size:13.5px;font-weight:700;margin-top:3px;">{{ v.quoteFmt }}</div></div>
+              <div><div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#B49398;letter-spacing:0.5px;">Paid</div><div style="font-size:13.5px;font-weight:700;margin-top:3px;color:#5E7A58;">{{ v.paidFmt }}</div></div>
+              <div style="text-align:right;"><div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#B49398;letter-spacing:0.5px;">Balance</div><div style="font-size:13.5px;font-weight:800;margin-top:3px;color:#A05C6A;">{{ v.balanceFmt }}</div></div>
+            </div>
+            <sc-if value="{{ v.hasPhone }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:9px;margin-top:14px;">
+              <a href="{{ v.telHref }}" style="flex:1;text-align:center;background:#7E4451;color:#fff;font-size:12.5px;font-weight:700;padding:10px;border-radius:13px;">Call</a>
+              <a href="{{ v.smsHref }}" style="flex:1;text-align:center;background:#F3E7E4;color:#7E4451;font-size:12.5px;font-weight:700;padding:10px;border-radius:13px;">Message</a>
+            </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- ============ PEOPLE ============ -->
+      <sc-if value="{{ isPeople }}" hint-placeholder-val="{{ true }}">
+      <div style="animation:wbFade .3s ease;">
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;margin-bottom:14px;">Who paid what</div>
+        <div style="background:#fff;border:1px solid #F1E7E4;border-radius:22px;padding:22px;box-shadow:0 8px 20px rgba(58,44,46,0.05);display:flex;flex-direction:column;align-items:center;">
+          <div style="width:150px;height:150px;border-radius:50%;background: {{ donutPeopleStyle }};display:flex;align-items:center;justify-content:center;">
+            <div style="width:92px;height:92px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;"><div style="font-size:10px;letter-spacing:1px;color:#B49398;">CONTRIBUTED</div><div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:600;margin-top:2px;">{{ heroPaidShortFmt }}</div></div>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+            <div style="background:#fff;border:1px solid #F1E7E4;border-radius:18px;padding:15px 16px;margin-bottom:11px;box-shadow:0 6px 16px rgba(58,44,46,0.04);">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:11px;">
+                  <span style="width:38px;height:38px;border-radius:50%;background: {{ p.color }};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">{{ p.initial }}</span>
+                  <div><div style="font-size:14px;font-weight:700;">{{ p.shortName }}</div><div style="font-size:11px;color:#9A868A;">{{ p.pct }}% of total</div></div>
+                </div>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;">{{ p.amountFmt }}</span>
+              </div>
+              <div style="height:7px;border-radius:6px;background:#F1E7E4;overflow:hidden;margin-top:12px;"><div style="height:100%;border-radius:6px;width: {{ p.pct }}%;background: {{ p.color }};"></div></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+
+    <!-- FAB -->
+    <sc-if value="{{ showFab }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ openPaymentModal }}" style="position:absolute;right:20px;bottom:90px;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#A05C6A,#7E4451);color:#fff;font-size:28px;font-weight:300;line-height:1;box-shadow:0 12px 26px -6px rgba(126,68,81,0.6);display:flex;align-items:center;justify-content:center;padding-bottom:3px;">+</button>
+    </sc-if>
+
+    <!-- Bottom nav -->
+    <div style="position:absolute;left:0;right:0;bottom:0;height:74px;background:rgba(252,250,249,0.94);backdrop-filter:blur(12px);border-top:1px solid #F1E7E4;display:flex;padding:8px 6px 12px;">
+      <sc-for list="{{ nav }}" as="t" hint-placeholder-count="5">
+        <button onClick="{{ t.onClick }}" style="flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0;">
+          <span style="width:5px;height:5px;border-radius:50%;background: {{ t.dot }};"></span>
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:0.2px;color: {{ t.color }};">{{ t.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- ============ MODAL / SHEET ============ -->
+    <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position:absolute;inset:0;background:rgba(58,32,38,0.45);z-index:40;display:flex;align-items:flex-end;animation:wbFade .2s ease;">
+      <div onClick="{{ stop }}" style="width:100%;max-height:86%;overflow-y:auto;background:#FCFAF9;border-radius:28px 28px 0 0;padding:10px 22px 30px;animation:wbSheet .3s cubic-bezier(.2,.8,.2,1);">
+        <div style="width:42px;height:5px;border-radius:3px;background:#E6D6D3;margin:6px auto 16px;"></div>
+
+        <!-- payment form -->
+        <sc-if value="{{ isPaymentModal }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:21px;font-weight:600;margin-bottom:18px;">Record a payment</div>
+          <label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Category</label>
+          <select name="categoryId" value="{{ form.categoryId }}" onChange="{{ onFormField }}" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;color:#3A2C2E;">
+            <sc-for list="{{ categoryOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Description</label>
+          <input name="item" value="{{ form.item }}" onInput="{{ onFormField }}" placeholder="e.g. Advance, Final settlement" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;">
+          <label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Amount (Rs)</label>
+          <input name="amount" value="{{ form.amount }}" onInput="{{ onFormField }}" type="number" placeholder="0" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;">
+          <div style="display:flex;gap:12px;">
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Paid by</label>
+              <select name="paidBy" value="{{ form.paidBy }}" onChange="{{ onFormField }}" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;color:#3A2C2E;">
+                <sc-for list="{{ payerOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+              </select>
+            </div>
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Date</label>
+              <input name="date" value="{{ form.date }}" onInput="{{ onFormField }}" type="date" style="width:100%;margin:6px 0 15px;padding:11px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;color:#3A2C2E;">
+            </div>
+          </div>
+          <button onClick="{{ submitPayment }}" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#A05C6A,#7E4451);color:#fff;font-size:15px;font-weight:700;padding:15px;border-radius:15px;">Save payment</button>
+        </div>
+        </sc-if>
+
+        <!-- category form -->
+        <sc-if value="{{ isCategoryModal }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:21px;font-weight:600;margin-bottom:18px;">New budget item</div>
+          <label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Item name</label>
+          <input name="name" value="{{ form.name }}" onInput="{{ onFormField }}" placeholder="e.g. Photography" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;">
+          <label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Vendor</label>
+          <input name="vendor" value="{{ form.vendor }}" onInput="{{ onFormField }}" placeholder="Vendor name" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;">
+          <div style="display:flex;gap:12px;">
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Budget (Rs)</label>
+              <input name="budget" value="{{ form.budget }}" onInput="{{ onFormField }}" type="number" placeholder="0" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;"></div>
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Quoted (Rs)</label>
+              <input name="quote" value="{{ form.quote }}" onInput="{{ onFormField }}" type="number" placeholder="0" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;"></div>
+          </div>
+          <label style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;">Contact</label>
+          <input name="contact" value="{{ form.contact }}" onInput="{{ onFormField }}" placeholder="Phone number" style="width:100%;margin:6px 0 15px;padding:12px 13px;border-radius:13px;border:1px solid #EADBD8;background:#fff;font-size:14px;">
+          <button onClick="{{ addCategory }}" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#A05C6A,#7E4451);color:#fff;font-size:15px;font-weight:700;padding:15px;border-radius:15px;">Add item</button>
+        </div>
+        </sc-if>
+
+        <!-- category detail -->
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+            <div><div style="font-family:'Playfair Display',serif;font-size:23px;font-weight:600;">{{ detail.name }}</div><div style="font-size:13px;color:#9A868A;margin-top:2px;">{{ detail.vendor }}</div></div>
+            <span style="flex:0 0 auto;font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;background: {{ detail.status.bg }};color: {{ detail.status.color }};">{{ detail.status.label }}</span>
+          </div>
+          <sc-if value="{{ detail.hasContact }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#8B6169;margin-top:9px;font-weight:600;">{{ detail.contact }}</div></sc-if>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+            <div style="background:#F6EEEC;border-radius:14px;padding:13px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#B49398;">Budget</div><div style="font-size:16px;font-weight:800;margin-top:4px;">{{ detail.budgetFmt }}</div></div>
+            <div style="background:#F6EEEC;border-radius:14px;padding:13px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#B49398;">Quoted</div><div style="font-size:16px;font-weight:800;margin-top:4px;color: {{ detail.quoteColor }};">{{ detail.quoteFmt }}</div></div>
+            <div style="background:#EEF3EC;border-radius:14px;padding:13px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#8AA184;">Paid</div><div style="font-size:16px;font-weight:800;margin-top:4px;color:#5E7A58;">{{ detail.paidFmt }}</div></div>
+            <div style="background:#F7E9EB;border-radius:14px;padding:13px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#C08B96;">Balance</div><div style="font-size:16px;font-weight:800;margin-top:4px;color:#A05C6A;">{{ detail.balanceFmt }}</div></div>
+          </div>
+          <div style="height:9px;border-radius:6px;background:#F1E7E4;overflow:hidden;margin-top:16px;"><div style="height:100%;border-radius:6px;width: {{ detail.paidPct }}%;background:linear-gradient(90deg,#A05C6A,#C99BA4);"></div></div>
+          <div style="font-size:11.5px;color:#9A868A;margin-top:7px;">{{ detail.paidPct }}% of quoted amount paid</div>
+
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#B49398;margin:20px 0 10px;">Payments</div>
+          <sc-if value="{{ detail.hasPayments }}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{ detail.payments }}" as="p" hint-placeholder-count="2">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #F5EEEB;">
+              <div><div style="font-size:13.5px;font-weight:700;">{{ p.item }}</div><div style="font-size:11px;color:#9A868A;margin-top:2px;">{{ p.dateFmt }} · {{ p.payerShort }}</div></div>
+              <span style="font-size:14px;font-weight:800;">{{ p.amountFmt }}</span>
+            </div>
+          </sc-for>
+          </sc-if>
+          <sc-if value="{{ detail.noPayments }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#9A868A;padding:6px 0;">No payments recorded yet.</div></sc-if>
+
+          <button onClick="{{ detail.onAddPayment }}" style="width:100%;margin-top:18px;border:none;cursor:pointer;background:linear-gradient(135deg,#A05C6A,#7E4451);color:#fff;font-size:15px;font-weight:700;padding:15px;border-radius:15px;">+ Record payment</button>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:920},&quot;dashboardLayout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;cards&quot;,&quot;progress&quot;,&quot;charts&quot;],&quot;default&quot;:&quot;cards&quot;,&quot;tsType&quot;:&quot;'cards'|'progress'|'charts'&quot;,&quot;section&quot;:&quot;Dashboard&quot;}}">
+class Component extends DCLogic {
+  state = {
+    tab: 'dashboard',
+    dashLayout: null,
+    modalOpen: false,
+    modalType: null,
+    detailId: null,
+    form: {},
+    categories: [
+      { id: 'c1', name: 'Decoration', vendor: 'Grooms Art', contact: '0112 828 298 / 077 230 9474', budget: 450000, quote: 500000 },
+      { id: 'c2', name: 'Wedding Hall', vendor: 'Pasindu', contact: '076 800 1412', budget: 120000, quote: 100000 },
+      { id: 'c3', name: 'Cake', vendor: 'Dilanthi Cake', contact: '071 624 8127', budget: 8000, quote: 5000 },
+      { id: 'c4', name: 'Gold & Jewellery', vendor: 'Raja Jewelers', contact: '', budget: 1800000, quote: 1859000 },
+      { id: 'c5', name: 'Photography', vendor: 'To be decided', contact: '', budget: 150000, quote: 0 },
+      { id: 'c6', name: 'Music & Band', vendor: 'To be decided', contact: '', budget: 90000, quote: 0 }
+    ],
+    payments: [
+      { id: 'p1', date: '2026-06-14', categoryId: 'c1', item: 'Advance', paidBy: 'Shakya Rathnaweera', amount: 5000 },
+      { id: 'p2', date: '2026-06-14', categoryId: 'c2', item: 'Booking', paidBy: 'p.saus.ranasinghe@gmail.com', amount: 100000 },
+      { id: 'p3', date: '2026-06-14', categoryId: 'c3', item: 'Booking', paidBy: 'p.saus.ranasinghe@gmail.com', amount: 5000 },
+      { id: 'p4', date: '2026-07-04', categoryId: 'c4', item: 'Part payment', paidBy: 'Shakya Rathnaweera', amount: 200000 },
+      { id: 'p5', date: '2026-07-04', categoryId: 'c4', item: 'Settlement', paidBy: 'Piyumi Home', amount: 1659000 }
+    ]
+  };
+
+  PALETTE = ['#A05C6A', '#7E4451', '#C9A15B', '#7C9A78', '#8FA1B3', '#C08497'];
+  PAYERS = {
+    'Piyumi Home': { color: '#A05C6A', tint: '#F6E7EA', short: 'Piyumi' },
+    'Shakya Rathnaweera': { color: '#7E4451', tint: '#F1E4E6', short: 'Shakya' },
+    'p.saus.ranasinghe@gmail.com': { color: '#C9A15B', tint: '#F7EFDD', short: 'Pasindu' }
+  };
+  MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+  fmt(n) { return 'Rs\u00A0' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
+  fmtShort(n) {
+    n = Number(n) || 0;
+    if (n >= 1000000) return 'Rs\u00A0' + (n / 1000000).toFixed(2).replace(/\.?0+$/, '') + 'M';
+    if (n >= 1000) return 'Rs\u00A0' + Math.round(n / 1000) + 'K';
+    return this.fmt(n);
+  }
+  payerMeta(name) { return this.PAYERS[name] || { color: '#8FA1B3', tint: '#EEF1F4', short: (name || '').split(/[@\s]/)[0] || 'Other' }; }
+  phoneOf(c) { const m = (c || '').match(/[0-9][0-9\s]{6,}/); return m ? m[0].replace(/\s/g, '') : ''; }
+  donut(items) {
+    const total = items.reduce((a, x) => a + x.value, 0) || 1;
+    let acc = 0;
+    const segs = items.map(x => { const s = acc / total * 360; acc += x.value; const e = acc / total * 360; return `${x.color} ${s.toFixed(1)}deg ${e.toFixed(1)}deg`; });
+    return `conic-gradient(${segs.join(',')})`;
+  }
+  dateParts(d) { const p = (d || '').split('-'); return { day: p[2] || '', mon: this.MONTHS[(parseInt(p[1], 10) || 1) - 1], fmt: p[0] ? `${p[0]}/${p[1]}/${p[2]}` : d }; }
+
+  computeCats() {
+    const pays = this.state.payments;
+    return this.state.categories.map((c, i) => {
+      const cps = pays.filter(p => p.categoryId === c.id);
+      const paid = cps.reduce((a, p) => a + Number(p.amount || 0), 0);
+      const quote = Number(c.quote || 0), budget = Number(c.budget || 0);
+      const balance = Math.max(quote - paid, 0);
+      const pct = quote > 0 ? Math.min(100, Math.round(paid / quote * 100)) : 0;
+      let status;
+      if (quote === 0 && paid === 0) status = { label: 'Not started', bg: '#F0E9E9', color: '#9A868A' };
+      else if (paid <= 0) status = { label: 'Pending', bg: '#F0E9E9', color: '#9A868A' };
+      else if (paid >= quote) status = { label: 'Fully paid', bg: '#E9F0E6', color: '#5E7A58' };
+      else status = { label: 'Partially paid', bg: '#F6EEDD', color: '#9A7434' };
+      const overBudget = quote > budget && budget > 0;
+      return {
+        ...c, paid, quote, budget, balance, paidPct: pct, status, overBudget,
+        overByFmt: this.fmt(quote - budget), sliceColor: this.PALETTE[i % this.PALETTE.length],
+        quoteColor: overBudget ? '#A65454' : '#3A2C2E',
+        budgetFmt: this.fmt(budget), quoteFmt: quote > 0 ? this.fmt(quote) : '—', paidFmt: this.fmt(paid), balanceFmt: this.fmt(balance),
+        _payments: cps,
+        onClick: () => this.setState({ modalOpen: true, modalType: 'detail', detailId: c.id })
+      };
+    });
+  }
+
+  setTab(t) { return () => this.setState({ tab: t }); }
+  openPaymentModal = () => this.setState({ modalOpen: true, modalType: 'payment', form: { date: '2026-07-06', categoryId: this.state.categories[0].id, paidBy: 'Piyumi Home', item: '', amount: '' } });
+  openCategoryModal = () => this.setState({ modalOpen: true, modalType: 'category', form: { name: '', vendor: '', budget: '', quote: '', contact: '' } });
+  closeModal = () => this.setState({ modalOpen: false, modalType: null, detailId: null });
+  stop = (e) => e.stopPropagation();
+  onFormField = (e) => { const { name, value } = e.target; this.setState(s => ({ form: { ...s.form, [name]: value } })); };
+
+  submitPayment = () => {
+    const f = this.state.form;
+    if (!f.amount || Number(f.amount) <= 0 || !f.categoryId) return;
+    const p = { id: 'p' + Date.now(), date: f.date || '2026-07-06', categoryId: f.categoryId, item: f.item || 'Payment', paidBy: f.paidBy || 'Piyumi Home', amount: Number(f.amount) };
+    this.setState(s => ({ payments: [...s.payments, p], modalOpen: false, modalType: null, tab: 'payments' }));
+  };
+  addCategory = () => {
+    const f = this.state.form;
+    if (!f.name) return;
+    const c = { id: 'c' + Date.now(), name: f.name, vendor: f.vendor || 'To be decided', contact: f.contact || '', budget: Number(f.budget) || 0, quote: Number(f.quote) || 0 };
+    this.setState(s => ({ categories: [...s.categories, c], modalOpen: false, modalType: null }));
+  };
+
+  renderVals() {
+    const cats = this.computeCats();
+    const totalBudget = cats.reduce((a, c) => a + c.budget, 0);
+    const totalQuote = cats.reduce((a, c) => a + c.quote, 0);
+    const totalPaid = cats.reduce((a, c) => a + c.paid, 0);
+    const totalBalance = Math.max(totalQuote - totalPaid, 0);
+    const heroPct = totalQuote > 0 ? Math.round(totalPaid / totalQuote * 100) : 0;
+    const overBudgetDiff = totalQuote - totalBudget;
+
+    const spentCats = cats.filter(c => c.paid > 0).map(c => ({ ...c, sharePct: totalPaid > 0 ? Math.round(c.paid / totalPaid * 100) : 0 }));
+
+    // people
+    const map = {};
+    this.state.payments.forEach(p => { map[p.paidBy] = (map[p.paidBy] || 0) + Number(p.amount || 0); });
+    const people = Object.keys(map).map(name => { const m = this.payerMeta(name); return { name, amount: map[name], amountFmt: this.fmt(map[name]), pct: totalPaid > 0 ? +(map[name] / totalPaid * 100).toFixed(1) : 0, color: m.color, tint: m.tint, shortName: m.short, initial: m.short[0] }; }).sort((a, b) => b.amount - a.amount);
+
+    // vendors from cats with a real vendor
+    const vendors = cats.filter(c => c.vendor && c.vendor !== 'To be decided').map((c, i) => {
+      const phone = this.phoneOf(c.contact);
+      return { name: c.vendor, item: c.name, contact: c.contact, hasContact: !!c.contact, quoteFmt: c.quoteFmt, paidFmt: c.paidFmt, balanceFmt: c.balanceFmt, initial: c.vendor[0], color: this.PALETTE[i % this.PALETTE.length], tint: ['#F6E7EA', '#F1E4E6', '#F7EFDD', '#EEF3EC', '#EEF1F4', '#F5E9EF'][i % 6], hasPhone: !!phone, telHref: 'tel:' + phone, smsHref: 'sms:' + phone };
+    });
+
+    // payments list newest first
+    const payments = [...this.state.payments].reverse().map(p => {
+      const dp = this.dateParts(p.date); const cat = cats.find(c => c.id === p.categoryId) || {}; const m = this.payerMeta(p.paidBy);
+      return { item: p.item, amountFmt: this.fmt(p.amount), day: dp.day, mon: dp.mon, catName: cat.name || '', vendor: cat.vendor || '', sliceColor: cat.sliceColor || '#A05C6A', tint: (cat.sliceColor || '#A05C6A') + '1F', payerShort: m.short, payerColor: m.color, payerTint: m.tint };
+    });
+
+    // dashboard layout
+    const layout = this.state.dashLayout || (this.props.dashboardLayout || 'cards');
+    const segDefs = [{ k: 'cards', l: 'Overview' }, { k: 'progress', l: 'Progress' }, { k: 'charts', l: 'Charts' }];
+    const dashSegs = segDefs.map(s => ({ label: s.l, onClick: () => this.setState({ dashLayout: s.k }), bg: layout === s.k ? '#FCFAF9' : 'transparent', color: layout === s.k ? '#7E4451' : '#A98D91', shadow: layout === s.k ? '0 2px 6px rgba(58,44,46,0.1)' : 'none' }));
+
+    const navDefs = [{ k: 'dashboard', l: 'Home' }, { k: 'budget', l: 'Budget' }, { k: 'payments', l: 'Log' }, { k: 'vendors', l: 'Vendors' }, { k: 'people', l: 'People' }];
+    const nav = navDefs.map(n => ({ label: n.l, onClick: this.setTab(n.k), color: this.state.tab === n.k ? '#7E4451' : '#B4A0A3', dot: this.state.tab === n.k ? '#A05C6A' : 'transparent' }));
+
+    const detailCat = cats.find(c => c.id === this.state.detailId);
+    let detail = null;
+    if (detailCat) {
+      detail = { ...detailCat, hasContact: !!detailCat.contact, hasPayments: detailCat._payments.length > 0, noPayments: detailCat._payments.length === 0,
+        payments: detailCat._payments.map(p => { const dp = this.dateParts(p.date); const m = this.payerMeta(p.paidBy); return { item: p.item, amountFmt: this.fmt(p.amount), dateFmt: dp.fmt, payerShort: m.short }; }),
+        onAddPayment: () => this.setState({ modalOpen: true, modalType: 'payment', form: { date: '2026-07-06', categoryId: detailCat.id, paidBy: 'Piyumi Home', item: '', amount: '' } }) };
+    }
+
+    return {
+      couple: 'Piyumi & Shakya',
+      isDashboard: this.state.tab === 'dashboard', isBudget: this.state.tab === 'budget', isPayments: this.state.tab === 'payments', isVendors: this.state.tab === 'vendors', isPeople: this.state.tab === 'people',
+      isLayoutCards: layout === 'cards', isLayoutProgress: layout === 'progress', isLayoutCharts: layout === 'charts',
+      dashSegs, nav,
+      heroPaidFmt: this.fmt(totalPaid), heroPaidShortFmt: this.fmtShort(totalPaid), heroCommittedFmt: this.fmt(totalQuote), heroBalanceFmt: this.fmt(totalBalance), heroBudgetFmt: this.fmt(totalBudget), heroPct,
+      ringStyle: `conic-gradient(#F2C4C9 ${heroPct * 3.6}deg, rgba(255,255,255,0.22) 0)`,
+      catCount: cats.length, payCount: this.state.payments.length,
+      overBudgetFmt: (overBudgetDiff >= 0 ? '+' : '−') + this.fmt(Math.abs(overBudgetDiff)).replace('Rs\u00A0', 'Rs\u00A0'), overBudgetColor: overBudgetDiff > 0 ? '#A65454' : '#5E7A58',
+      committedBarPct: totalBudget > 0 ? Math.min(100, Math.round(totalQuote / totalBudget * 100)) : 0,
+      spentCats, categories: cats, people, vendors, payments,
+      donutCategoryStyle: this.donut(spentCats.map(c => ({ value: c.paid, color: c.sliceColor }))),
+      donutPeopleStyle: this.donut(people.map(p => ({ value: p.amount, color: p.color }))),
+      showFab: this.state.tab !== 'vendors' && this.state.tab !== 'people',
+      modalOpen: this.state.modalOpen, isPaymentModal: this.state.modalType === 'payment', isCategoryModal: this.state.modalType === 'category', isDetail: this.state.modalType === 'detail',
+      form: this.state.form,
+      categoryOptions: this.state.categories.map(c => ({ value: c.id, label: c.name })),
+      payerOptions: [{ value: 'Piyumi Home', label: 'Piyumi' }, { value: 'Shakya Rathnaweera', label: 'Shakya' }, { value: 'p.saus.ranasinghe@gmail.com', label: 'Pasindu' }],
+      detail,
+      openPaymentModal: this.openPaymentModal, openCategoryModal: this.openCategoryModal, closeModal: this.closeModal, stop: this.stop,
+      onFormField: this.onFormField, submitPayment: this.submitPayment, addCategory: this.addCategory
+    };
+  }
+}
+</script>
+</body>
+</html>

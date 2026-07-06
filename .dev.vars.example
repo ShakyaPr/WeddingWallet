@@ -1,0 +1,12 @@
+# Copy this file to `.dev.vars` for local `wrangler pages dev`.
+# `.dev.vars` is gitignored — never commit real keys.
+# In production these are set in the Cloudflare Pages dashboard
+# (Settings → Environment variables / Secrets), NOT in this file.
+
+SUPABASE_URL=https://YOUR-PROJECT-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Optional API hardening (see functions/_lib/access.ts). Leave blank to disable.
+# Find these in Cloudflare Zero Trust → Access → your application.
+CF_ACCESS_TEAM_DOMAIN=
+CF_ACCESS_AUD=
