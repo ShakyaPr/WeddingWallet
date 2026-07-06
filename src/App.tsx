@@ -19,6 +19,7 @@ import CategoryDetail from './components/CategoryDetail'
 type ModalState =
   | { type: 'payment'; categoryId?: string }
   | { type: 'category' }
+  | { type: 'editCategory'; categoryId: string }
   | { type: 'person' }
   | { type: 'detail'; categoryId: string }
   | null
@@ -64,6 +65,7 @@ export default function App() {
 
   const submitPayment = (p: NewPayment) => run(() => api.addPayment(p), () => setTab('payments'))
   const addCategory = (c: NewCategory) => run(() => api.addCategory(c))
+  const updateCategory = (id: string, patch: NewCategory) => run(() => api.updateCategory(id, patch))
   const addPerson = (p: NewPayer) => run(() => api.addPayer(p))
 
   async function deletePayment(id: string) {
@@ -78,6 +80,7 @@ export default function App() {
   const h: Handlers = {
     openPayment: (categoryId) => setModal({ type: 'payment', categoryId }),
     openCategory: () => setModal({ type: 'category' }),
+    openEditCategory: (categoryId) => setModal({ type: 'editCategory', categoryId }),
     openPerson: () => setModal({ type: 'person' }),
     openDetail: (categoryId) => setModal({ type: 'detail', categoryId }),
     deletePayment,
@@ -93,6 +96,7 @@ export default function App() {
   ]
   const showFab = tab !== 'vendors' && tab !== 'people'
   const detailCat = modal?.type === 'detail' ? d?.cats.find((c) => c.id === modal.categoryId) : undefined
+  const editCat = modal?.type === 'editCategory' ? state?.categories.find((c) => c.id === modal.categoryId) : undefined
 
   return (
     <div className="wb-frame-wrap">
@@ -156,12 +160,22 @@ export default function App() {
               <PaymentForm categories={state.categories} payers={state.payers} initialCategoryId={modal.categoryId} saving={saving} onSubmit={submitPayment} />
             )}
             {modal.type === 'category' && <CategoryForm saving={saving} onSubmit={addCategory} />}
+            {modal.type === 'editCategory' && editCat && (
+              <CategoryForm
+                saving={saving}
+                title="Edit budget item"
+                submitLabel="Save changes"
+                initial={{ name: editCat.name, vendor: editCat.vendor, budget: editCat.budget, quote: editCat.quote, contact: editCat.contact }}
+                onSubmit={(c) => updateCategory(editCat.id, c)}
+              />
+            )}
             {modal.type === 'person' && <PersonForm saving={saving} onSubmit={addPerson} />}
             {modal.type === 'detail' && detailCat && (
               <CategoryDetail
                 cat={detailCat}
                 payers={state.payers}
                 onAddPayment={(id) => setModal({ type: 'payment', categoryId: id })}
+                onEdit={(id) => setModal({ type: 'editCategory', categoryId: id })}
                 onDeletePayment={deletePayment}
                 onDeleteCategory={deleteCategory}
               />

@@ -7,14 +7,25 @@ interface Props {
   cat: ComputedCategory
   payers: Payer[]
   onAddPayment: (categoryId: string) => void
+  onEdit: (categoryId: string) => void
   onDeletePayment: (id: string) => void
   onDeleteCategory: (id: string) => void
 }
 
+const secondaryBtn = {
+  flex: 1,
+  border: '1px solid #EAD7DA',
+  background: 'transparent',
+  fontSize: 13.5,
+  fontWeight: 700,
+  padding: 13,
+  borderRadius: 15,
+} as const
+
 const tile = (bg: string) => ({ background: bg, borderRadius: 14, padding: 13 })
 const tileLabel = (color: string) => ({ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 0.5, color })
 
-export default function CategoryDetail({ cat, payers, onAddPayment, onDeletePayment, onDeleteCategory }: Props) {
+export default function CategoryDetail({ cat, payers, onAddPayment, onEdit, onDeletePayment, onDeleteCategory }: Props) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
@@ -76,12 +87,14 @@ export default function CategoryDetail({ cat, payers, onAddPayment, onDeletePaym
 
       <button onClick={() => onAddPayment(cat.id)} style={primaryBtn}>+ Record payment</button>
 
-      <button
-        onClick={() => onDeleteCategory(cat.id)}
-        style={{ width: '100%', marginTop: 10, border: '1px solid #EAD7DA', background: 'transparent', color: '#A65454', fontSize: 13.5, fontWeight: 700, padding: 13, borderRadius: 15 }}
-      >
-        Delete this item
-      </button>
+      <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+        <button onClick={() => onEdit(cat.id)} style={{ ...secondaryBtn, color: '#7E4451' }}>
+          Edit details
+        </button>
+        <button onClick={() => onDeleteCategory(cat.id)} style={{ ...secondaryBtn, color: '#A65454' }}>
+          Delete item
+        </button>
+      </div>
     </div>
   )
 }

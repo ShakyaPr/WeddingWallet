@@ -8,6 +8,7 @@ export type DashLayout = 'cards' | 'progress' | 'charts'
 export interface Handlers {
   openPayment: (categoryId?: string) => void
   openCategory: () => void
+  openEditCategory: (categoryId: string) => void
   openPerson: () => void
   openDetail: (categoryId: string) => void
   deletePayment: (id: string) => void
