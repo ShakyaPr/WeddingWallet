@@ -62,7 +62,9 @@ export default function CategoryDetail({ cat, payers, onAddPayment, onEdit, onDe
       <div style={{ height: 9, borderRadius: 6, background: '#F1E7E4', overflow: 'hidden', marginTop: 16 }}>
         <div style={{ height: '100%', borderRadius: 6, width: `${cat.paidPct}%`, background: 'linear-gradient(90deg,#A05C6A,#C99BA4)' }} />
       </div>
-      <div style={{ fontSize: 11.5, color: '#9A868A', marginTop: 7 }}>{cat.paidPct}% of quoted amount paid</div>
+      <div style={{ fontSize: 11.5, color: '#9A868A', marginTop: 7 }}>
+        {cat.quote > 0 ? `${cat.paidPct}% of quoted amount paid` : 'No quote recorded yet'}
+      </div>
 
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#B49398', margin: '20px 0 10px' }}>Payments</div>
 

@@ -32,6 +32,7 @@ export interface ComputedPerson {
   tint: string
   shortName: string
   initial: string
+  payments: Payment[]
 }
 
 export interface ComputedVendor {
@@ -62,6 +63,8 @@ export function computeCategories(categories: Category[], payments: Payment[]): 
     let status: StatusBadge
     if (quote === 0 && paid === 0) status = { label: 'Not started', bg: '#F0E9E9', color: '#9A868A' }
     else if (paid <= 0) status = { label: 'Pending', bg: '#F0E9E9', color: '#9A868A' }
+    // Without a quote there is nothing to be "fully" paid against — money is out, but the total is unknown.
+    else if (quote === 0) status = { label: 'No quote yet', bg: '#F6EEDD', color: '#9A7434' }
     else if (paid >= quote) status = { label: 'Fully paid', bg: '#E9F0E6', color: '#5E7A58' }
     else status = { label: 'Partially paid', bg: '#F6EEDD', color: '#9A7434' }
 
@@ -88,24 +91,28 @@ export function computeCategories(categories: Category[], payments: Payment[]): 
   })
 }
 
-/** Contributions grouped by payer, largest first. */
+/** Contributions grouped by payer, largest first. Each person keeps their own payments (newest first). */
 export function computePeople(payments: Payment[], payers: Payer[], totalPaid: number): ComputedPerson[] {
-  const map: Record<string, number> = {}
+  const map: Record<string, Payment[]> = {}
   payments.forEach((p) => {
-    map[p.paid_by] = (map[p.paid_by] || 0) + Number(p.amount || 0)
+    if (!map[p.paid_by]) map[p.paid_by] = []
+    map[p.paid_by].push(p)
   })
   return Object.keys(map)
     .map((name) => {
+      const own = map[name]
+      const amount = own.reduce((a, p) => a + Number(p.amount || 0), 0)
       const m = payerMeta(name, payers)
       return {
         name,
-        amount: map[name],
-        amountFmt: fmt(map[name]),
-        pct: totalPaid > 0 ? +((map[name] / totalPaid) * 100).toFixed(1) : 0,
+        amount,
+        amountFmt: fmt(amount),
+        pct: totalPaid > 0 ? +((amount / totalPaid) * 100).toFixed(1) : 0,
         color: m.color,
         tint: m.tint,
         shortName: m.short,
         initial: m.short[0] || '?',
+        payments: own,
       }
     })
     .sort((a, b) => b.amount - a.amount)
