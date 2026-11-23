@@ -3,30 +3,34 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Wedding expense tracker — React + Vite SPA on Cloudflare Pages, Supabase Postgres backend.",
+  "description": "Wedding expense tracker — React + Vite SPA served by a Node (Hono) API on Postgres. Deploys to Dokploy via Dockerfile.",
   "scripts": {
     "dev": "vite",
-    "dev:api": "npm run build && wrangler pages dev --port 8788",
+    "dev:api": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
+    "start": "node dist-server/index.js",
     "preview": "vite preview",
-    "cf:preview": "npm run build && wrangler pages dev",
-    "deploy": "npm run build && wrangler pages deploy",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
+    "@hono/node-server": "^2.1.11",
     "hono": "^4.6.3",
     "jose": "^5.9.3",
+    "pg": "^8.23.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241004.0",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.2",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.2",
-    "vite": "^5.4.8",
-    "wrangler": "^3.80.0"
+    "vite": "^5.4.8"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

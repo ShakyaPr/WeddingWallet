@@ -1,0 +1,46 @@
+-- ============================================================================
+--  WeddingWallet — Postgres schema
+--
+--  The API server applies this file automatically every time it starts
+--  (see server/db.ts), so it MUST stay idempotent: only `create ... if not
+--  exists`, never `drop`. To change a column later, add an `alter table ...`
+--  statement that is safe to re-run (e.g. `add column if not exists`).
+--
+--  Needs Postgres 13+ (gen_random_uuid() is built in from 13 onwards).
+-- ============================================================================
+
+-- People who pay ------------------------------------------------------------
+create table if not exists payers (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null unique,          -- stored on each payment as `paid_by`
+  short_name text not null,
+  color      text not null default '#8FA1B3',
+  tint       text not null default '#EEF1F4',
+  created_at timestamptz not null default now()
+);
+
+-- Budget items / categories -------------------------------------------------
+create table if not exists categories (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  vendor     text not null default 'To be decided',
+  contact    text not null default '',
+  budget     numeric(14,2) not null default 0,   -- what you planned to spend
+  quote      numeric(14,2) not null default 0,   -- vendor's quoted / committed price
+  sort_order int  not null default 0,
+  created_at timestamptz not null default now()
+);
+
+-- Individual payments / transactions ---------------------------------------
+create table if not exists payments (
+  id          uuid primary key default gen_random_uuid(),
+  category_id uuid not null references categories(id) on delete cascade,
+  date        date not null default current_date,
+  item        text not null default 'Payment',   -- e.g. "Advance", "Settlement"
+  paid_by     text not null,                      -- payer name
+  amount      numeric(14,2) not null check (amount > 0),
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists payments_category_id_idx on payments(category_id);
+create index if not exists payments_date_idx on payments(date);
