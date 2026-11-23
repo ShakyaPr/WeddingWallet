@@ -1,4 +1,4 @@
-// Shared data shapes. These mirror the Supabase tables (see supabase/schema.sql).
+// Shared data shapes. These mirror the Postgres tables (see db/schema.sql).
 
 export interface Payer {
   id: string

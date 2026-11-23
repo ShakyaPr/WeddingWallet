@@ -1,0 +1,19 @@
+# Keep the Docker build context small and free of secrets.
+node_modules
+dist
+dist-server
+*.tsbuildinfo
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.wrangler
+.DS_Store
+npm-debug.log*
+design
+uploads
+README.md
+DEPLOYMENT.md
+Dockerfile
+.dockerignore

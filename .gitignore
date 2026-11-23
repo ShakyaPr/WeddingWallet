@@ -1,8 +1,8 @@
 node_modules
 dist
+dist-server
 *.tsbuildinfo
-.wrangler
-.dev.vars
+.env
 *.local
 .DS_Store
 npm-debug.log*
