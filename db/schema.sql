@@ -63,3 +63,19 @@ create table if not exists sessions (
 );
 
 create index if not exists sessions_expires_at_idx on sessions(expires_at);
+
+-- App changes are saved atomically with their records. No FK to live records:
+-- a deleted item must remain readable in history and available for undo.
+create table if not exists activity_log (
+  id           bigserial primary key,
+  entity_type  text not null check (entity_type in ('category', 'payment', 'person')),
+  entity_id    uuid not null,
+  entity_label text not null,
+  action       text not null check (action in ('created', 'updated', 'deleted', 'restored')),
+  actor_id     text not null,
+  actor_name   text not null,
+  before_data  jsonb,
+  after_data   jsonb,
+  restores_id  bigint unique references activity_log(id),
+  created_at   timestamptz not null default clock_timestamp()
+);

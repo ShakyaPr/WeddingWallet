@@ -113,7 +113,7 @@ See **[DEPLOYMENT.md](DEPLOYMENT.md)**:
 
 ## 5. Using the app
 
-- **Home** — dashboard with 3 views: Overview cards, Progress bars, Charts (donuts).
+- **Home** — dashboard with Overview, Progress, and Insights, plus explicit missing-quote counts and a provisional projected total.
 - **Budget** — every item with budget / quoted / paid / balance; tap a card to see
   its payments, add a payment, or delete it. **+ Add** creates a new item.
 - **Log** — every transaction, newest first. The **+** button records a payment.
@@ -132,6 +132,19 @@ See **[DEPLOYMENT.md](DEPLOYMENT.md)**:
 - **Account / sign out:** tap the round avatar at the top right.
 
 ---
+
+## Budget certainty, corrections, and records
+
+- A blank or zero quote means **Awaiting quote**. Use the Budget filter to find these items. The projected total uses each recorded quote, falling back to the planned budget for unquoted items, and never drops below money already paid. Known balances exclude unquoted items and do not offset one vendor's balance with another vendor's overpayment.
+- Edit a payment using its pencil button in Payments or in a budget item's payment history. The amount, date, description, payer, and category can all be corrected without replacing its identity.
+- **Export data** on Home, Budget, Payments, or the account sheet downloads budget, payment, and full change-history CSV files. Exports include all records, irrespective of filters, and preserve cents. Missing quotes and balances remain blank and are marked explicitly.
+- **Change history** shows who added, edited, deleted, or restored records, with timestamps and expandable before/after details. It starts with changes made through the app after this version is deployed; earlier changes and direct database edits are not reconstructed.
+- After deleting a payment or a budget item, **Undo** restores it with its original identity. Restoring a budget item also restores its payments. History remains intact.
+- The new `activity_log` table is added automatically on server startup. Existing category and payment data are preserved. API details are in [docs/API.md](docs/API.md).
+
+### Regression checks
+
+`npm test` checks budget calculations and CSV handling, then exercises the real HTTP API against an isolated temporary PostgreSQL cluster. It requires PostgreSQL's `pg_config`, `initdb`, and `pg_ctl` locally (or set `PG_BINDIR` to their directory). It never reads the app's `DATABASE_URL`; the temporary database accepts socket connections only and is removed after testing.
 
 ## Security summary
 

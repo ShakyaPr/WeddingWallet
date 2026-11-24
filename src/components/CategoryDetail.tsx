@@ -1,99 +1,110 @@
 import type { ComputedCategory } from '../lib/compute'
 import type { Payer } from '../types'
-import { dateParts, payerMeta } from '../lib/format'
-import { primaryBtn } from './ui'
+import { dateParts, fmt, payerMeta } from '../lib/format'
+import { ProgressBar, primaryBtn } from './ui'
+import Icon, { categoryIcon } from './Icon'
 
 interface Props {
   cat: ComputedCategory
   payers: Payer[]
   onAddPayment: (categoryId: string) => void
   onEdit: (categoryId: string) => void
+  onEditPayment: (paymentId: string) => void
   onDeletePayment: (id: string) => void
   onDeleteCategory: (id: string) => void
 }
 
-const secondaryBtn = {
-  flex: 1,
-  border: '1px solid #EAD7DA',
-  background: 'transparent',
-  fontSize: 13.5,
-  fontWeight: 700,
-  padding: 13,
-  borderRadius: 15,
-} as const
-
-const tile = (bg: string) => ({ background: bg, borderRadius: 14, padding: 13 })
-const tileLabel = (color: string) => ({ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 0.5, color })
-
-export default function CategoryDetail({ cat, payers, onAddPayment, onEdit, onDeletePayment, onDeleteCategory }: Props) {
+export default function CategoryDetail({
+  cat,
+  payers,
+  onAddPayment,
+  onEdit,
+  onEditPayment,
+  onDeletePayment,
+  onDeleteCategory,
+}: Props) {
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 23, fontWeight: 600 }}>{cat.name}</div>
-          <div style={{ fontSize: 13, color: '#9A868A', marginTop: 2 }}>{cat.vendor}</div>
-        </div>
-        <span style={{ flex: '0 0 auto', fontSize: 11, fontWeight: 700, padding: '5px 11px', borderRadius: 20, background: cat.status.bg, color: cat.status.color }}>
-          {cat.status.label}
-        </span>
-      </div>
-
-      {cat.contact && <div style={{ fontSize: 13, color: '#8B6169', marginTop: 9, fontWeight: 600 }}>{cat.contact}</div>}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
-        <div style={tile('#F6EEEC')}>
-          <div style={tileLabel('#B49398')}>Budget</div>
-          <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4 }}>{cat.budgetFmt}</div>
-        </div>
-        <div style={tile('#F6EEEC')}>
-          <div style={tileLabel('#B49398')}>Quoted</div>
-          <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4, color: cat.quoteColor }}>{cat.quoteFmt}</div>
-        </div>
-        <div style={tile('#EEF3EC')}>
-          <div style={tileLabel('#8AA184')}>Paid</div>
-          <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4, color: '#5E7A58' }}>{cat.paidFmt}</div>
-        </div>
-        <div style={tile('#F7E9EB')}>
-          <div style={tileLabel('#C08B96')}>Balance</div>
-          <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4, color: '#A05C6A' }}>{cat.balanceFmt}</div>
-        </div>
-      </div>
-
-      <div style={{ height: 9, borderRadius: 6, background: '#F1E7E4', overflow: 'hidden', marginTop: 16 }}>
-        <div style={{ height: '100%', borderRadius: 6, width: `${cat.paidPct}%`, background: 'linear-gradient(90deg,#A05C6A,#C99BA4)' }} />
-      </div>
-      <div style={{ fontSize: 11.5, color: '#9A868A', marginTop: 7 }}>
-        {cat.quote > 0 ? `${cat.paidPct}% of quoted amount paid` : 'No quote recorded yet'}
-      </div>
-
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#B49398', margin: '20px 0 10px' }}>Payments</div>
-
-      {cat.payments.length === 0 && <div style={{ fontSize: 13, color: '#9A868A', padding: '6px 0' }}>No payments recorded yet.</div>}
-
-      {cat.payments.map((p) => {
-        const dp = dateParts(p.date)
-        const m = payerMeta(p.paid_by, payers)
-        return (
-          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid #F5EEEB' }}>
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 700 }}>{p.item}</div>
-              <div style={{ fontSize: 11, color: '#9A868A', marginTop: 2 }}>{dp.fmt} · {m.short}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 14, fontWeight: 800 }}>{new Intl.NumberFormat('en-US').format(Math.round(Number(p.amount)))}</span>
-              <button onClick={() => onDeletePayment(p.id)} aria-label="Delete payment" style={{ border: 'none', background: 'none', color: '#C0A9AD', fontSize: 16, lineHeight: 1 }}>×</button>
-            </div>
+    <div className="category-detail">
+      <span className="category-icon detail-icon">
+        <Icon name={categoryIcon(cat.name)} size={26} />
+      </span>
+      <h2 id="sheet-title" className="sheet-title">
+        {cat.name}
+      </h2>
+      <p className="sheet-subtitle">
+        {cat.vendor || 'Vendor to be decided'}
+        {cat.contact && <span className="detail-contact">{cat.contact}</span>}
+      </p>
+      <span className="status-badge" style={{ background: cat.status.bg, color: cat.status.color }}>
+        {cat.status.label}
+      </span>
+      <div className="detail-money">
+        {[
+          { label: 'Planned budget', value: cat.budgetFmt },
+          { label: 'Vendor quote', value: cat.quoteFmt },
+          { label: 'Paid so far', value: cat.paidFmt, color: 'var(--sage)' },
+          { label: 'Known balance', value: cat.balanceFmt, color: 'var(--wine)' },
+        ].map((s) => (
+          <div key={s.label}>
+            <span>{s.label}</span>
+            <strong style={{ color: s.color }}>{s.value}</strong>
           </div>
-        )
-      })}
-
-      <button onClick={() => onAddPayment(cat.id)} style={primaryBtn}>+ Record payment</button>
-
-      <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-        <button onClick={() => onEdit(cat.id)} style={{ ...secondaryBtn, color: '#7E4451' }}>
+        ))}
+      </div>
+      {cat.hasQuote && <ProgressBar value={cat.paidPct} label={`${cat.name} paid`} />}
+      <p className="detail-progress-label">
+        {cat.quote > 0
+          ? `${cat.paidPct}% of quoted amount paid`
+          : 'Add a quote to track payment progress'}
+      </p>
+      {cat.overBudget && (
+        <p className="form-hint">The quote is {cat.overByFmt} above your planned budget.</p>
+      )}
+      <div className="section-heading">
+        <h2>Payment history</h2>
+        <span className="count-label">{cat.payments.length} payments</span>
+      </div>
+      {!cat.payments.length && (
+        <p className="sheet-subtitle">No payments yet. Your first one starts the story.</p>
+      )}
+      {[...cat.payments]
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map((p) => (
+          <div className="detail-payment" key={p.id}>
+            <div>
+              <strong>{p.item}</strong>
+              <small>
+                {dateParts(p.date).fmt} · {payerMeta(p.paid_by, payers).short}
+              </small>
+            </div>
+            <b>{fmt(p.amount)}</b>
+            <button
+              className="icon-button"
+              onClick={() => onEditPayment(p.id)}
+              aria-label={`Edit payment: ${p.item}`}
+            >
+              <Icon name="edit" size={17} />
+            </button>
+            <button
+              className="icon-button"
+              onClick={() => onDeletePayment(p.id)}
+              aria-label={`Delete payment: ${p.item}`}
+            >
+              <Icon name="trash" size={17} />
+            </button>
+          </div>
+        ))}
+      <button onClick={() => onAddPayment(cat.id)} style={primaryBtn}>
+        <span className="button-content">
+          <Icon name="plus" size={18} />
+          Record payment
+        </span>
+      </button>
+      <div className="detail-actions">
+        <button className="secondary-button" onClick={() => onEdit(cat.id)}>
           Edit details
         </button>
-        <button onClick={() => onDeleteCategory(cat.id)} style={{ ...secondaryBtn, color: '#A65454' }}>
+        <button className="secondary-button delete-item" onClick={() => onDeleteCategory(cat.id)}>
           Delete item
         </button>
       </div>

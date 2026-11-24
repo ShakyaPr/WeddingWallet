@@ -10,7 +10,8 @@
     "build": "tsc -b && vite build",
     "start": "node dist-server/index.js",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",

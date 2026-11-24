@@ -7,6 +7,9 @@ export type DashLayout = 'cards' | 'progress' | 'charts'
 /** Actions the screens can trigger; implemented in App. */
 export interface Handlers {
   openPayment: (categoryId?: string) => void
+  openEditPayment: (paymentId: string) => void
+  openExports: () => void
+  openHistory: () => void
   openCategory: () => void
   openEditCategory: (categoryId: string) => void
   openPerson: () => void
