@@ -8,7 +8,15 @@ const NBSP = ' '
 
 /** "Rs 1,969,000" */
 export function fmt(n: number | string): string {
-  return 'Rs' + NBSP + Math.round(Number(n) || 0).toLocaleString('en-US')
+  const value = Number(n) || 0
+  return (
+    'Rs' +
+    NBSP +
+    value.toLocaleString('en-US', {
+      minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+      maximumFractionDigits: 2,
+    })
+  )
 }
 
 /** Compact: "Rs 1.97M", "Rs 200K" */
@@ -40,7 +48,8 @@ export function phoneOf(contact: string): string {
 
 /** Build a conic-gradient() donut/pie background from weighted colored slices. */
 export function donut(items: { value: number; color: string }[]): string {
-  const total = items.reduce((a, x) => a + x.value, 0) || 1
+  const total = items.reduce((a, x) => a + x.value, 0)
+  if (!total) return 'conic-gradient(#EDE5E0 0deg 360deg)'
   let acc = 0
   const segs = items.map((x) => {
     const s = (acc / total) * 360
@@ -67,5 +76,6 @@ export function dateParts(d: string): DateParts {
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }

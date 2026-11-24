@@ -1,51 +1,87 @@
+import { useState } from 'react'
 import type { ScreenProps } from '../viewtypes'
-import { screenTitle } from '../components/ui'
-
-const statLabel = { fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase' as const, color: '#B49398', letterSpacing: 0.5 }
+import { EmptyState, ScreenHeading, SearchField } from '../components/ui'
+import Icon, { categoryIcon } from '../components/Icon'
 
 export default function Vendors({ d }: ScreenProps) {
+  const [search, setSearch] = useState('')
+  const vendors = d.vendors.filter((v) =>
+    `${v.name} ${v.item} ${v.contact}`.toLowerCase().includes(search.toLowerCase())
+  )
   return (
-    <div style={{ animation: 'wbFade .3s ease' }}>
-      <div style={{ ...screenTitle, marginBottom: 14 }}>Vendors</div>
-
-      {d.vendors.map((v) => (
-        <div key={v.name + v.item} style={{ background: '#fff', border: '1px solid #F1E7E4', borderRadius: 20, padding: 17, marginBottom: 12, boxShadow: '0 8px 20px rgba(58,44,46,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
-            <div style={{ flex: '0 0 auto', width: 46, height: 46, borderRadius: '50%', background: v.tint, color: v.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Playfair Display', serif", fontSize: 19, fontWeight: 600 }}>
+    <div className="screen">
+      <ScreenHeading
+        eyebrow="THE PEOPLE BEHIND THE MAGIC"
+        title="Your dream team"
+        description="All your vendors, just a little closer."
+      />
+      <SearchField value={search} onChange={setSearch} placeholder="Search vendors or services" />
+      <div className="section-heading">
+        <h2>Your vendors</h2>
+        <span className="count-label">
+          {vendors.length} {vendors.length === 1 ? 'service' : 'services'}
+        </span>
+      </div>
+      {vendors.map((v) => (
+        <section className="vendor-card" key={v.name + v.item}>
+          <div className="vendor-heading">
+            <span className="vendor-avatar" style={{ background: v.tint, color: 'var(--wine)' }}>
               {v.initial}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{v.name}</div>
-              <div style={{ fontSize: 12, color: '#9A868A', marginTop: 1 }}>{v.item}</div>
-              {v.hasContact && <div style={{ fontSize: 12.5, color: '#8B6169', marginTop: 7, fontWeight: 600, letterSpacing: 0.2 }}>{v.contact}</div>}
+            </span>
+            <div>
+              <h2>{v.name}</h2>
+              <p>
+                <Icon name={categoryIcon(v.item)} size={13} />
+                {v.item}
+              </p>
             </div>
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 13, borderTop: '1px solid #F5EEEB' }}>
+          {v.hasContact && <p className="vendor-contact">{v.contact}</p>}
+          <div className="vendor-money">
             <div>
-              <div style={statLabel}>Quoted</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3 }}>{v.quoteFmt}</div>
+              <span>Quoted</span>
+              <strong>{v.quoteFmt}</strong>
             </div>
             <div>
-              <div style={statLabel}>Paid</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3, color: '#5E7A58' }}>{v.paidFmt}</div>
+              <span>Paid</span>
+              <strong className="positive">{v.paidFmt}</strong>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={statLabel}>Balance</div>
-              <div style={{ fontSize: 13.5, fontWeight: 800, marginTop: 3, color: '#A05C6A' }}>{v.balanceFmt}</div>
+            <div>
+              <span>Balance</span>
+              <strong className="wine">{v.balanceFmt}</strong>
             </div>
           </div>
-
-          {v.hasPhone && (
-            <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
-              <a href={'tel:' + v.phone} style={{ flex: 1, textAlign: 'center', background: '#7E4451', color: '#fff', fontSize: 12.5, fontWeight: 700, padding: 10, borderRadius: 13 }}>Call</a>
-              <a href={'sms:' + v.phone} style={{ flex: 1, textAlign: 'center', background: '#F3E7E4', color: '#7E4451', fontSize: 12.5, fontWeight: 700, padding: 10, borderRadius: 13 }}>Message</a>
+          {v.hasPhone ? (
+            <div className="vendor-actions">
+              <a className="small-primary" href={`tel:${v.phone}`}>
+                <Icon name="phone" size={16} />
+                Call vendor
+              </a>
+              <a className="secondary-button" href={`sms:${v.phone}`}>
+                <Icon name="message" size={16} />
+                Message
+              </a>
             </div>
+          ) : (
+            <p className="contact-note">
+              {v.hasContact
+                ? 'Contact details saved above'
+                : 'Add contact details in the budget item'}
+            </p>
           )}
-        </div>
+        </section>
       ))}
-
-      {d.vendors.length === 0 && <div style={{ fontSize: 13, color: '#9A868A', padding: '10px 2px' }}>No vendors yet. Add a budget item with a vendor name.</div>}
+      {!vendors.length && (
+        <EmptyState
+          icon="vendors"
+          title={search ? 'No vendors found' : 'Your dream team starts here'}
+          description={
+            search
+              ? 'Try a different name or service.'
+              : 'Add a vendor to a budget item and their details will appear here.'
+          }
+        />
+      )}
     </div>
   )
 }

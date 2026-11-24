@@ -1,64 +1,146 @@
+import { useState } from 'react'
 import type { ScreenProps } from '../viewtypes'
-import { screenTitle } from '../components/ui'
+import { AddButton, EmptyState, ProgressBar, ScreenHeading, SearchField } from '../components/ui'
+import Icon, { categoryIcon } from '../components/Icon'
+import BudgetCertainty from '../components/BudgetCertainty'
+import DataActions from '../components/DataActions'
+import { fmt } from '../lib/format'
 
-const cellLabel = { fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' as const, color: '#B49398' }
-
-export default function Budget({ d, h }: ScreenProps) {
+export default function Budget({
+  d,
+  h,
+  initialFilter = 'All items',
+}: ScreenProps & { initialFilter?: string }) {
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState(initialFilter)
+  const filtered = d.cats.filter(
+    (c) =>
+      `${c.name} ${c.vendor}`.toLowerCase().includes(search.toLowerCase()) &&
+      (filter === 'All items' ||
+        (filter === 'Awaiting quote'
+          ? !c.hasQuote
+          : filter === 'To pay'
+            ? c.hasQuote && c.balance > 0
+            : c.hasQuote && c.balance === 0))
+  )
   return (
-    <div style={{ animation: 'wbFade .3s ease' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div style={screenTitle}>Budget items</div>
-        <button onClick={h.openCategory} style={{ border: 'none', background: '#7E4451', color: '#fff', fontSize: 12.5, fontWeight: 700, padding: '9px 15px', borderRadius: 22 }}>
-          + Add
-        </button>
+    <div className="screen">
+      <ScreenHeading
+        eyebrow="THE PLAN FOR YOUR BIG DAY"
+        title="Your budget"
+        description={`${d.cats.length} details, one beautiful celebration.`}
+        action={<AddButton onClick={h.openCategory}>Add item</AddButton>}
+      />
+      <DataActions onExport={h.openExports} onHistory={h.openHistory} />
+      <div className="budget-summary">
+        <span>
+          Planned budget<strong>{fmt(d.totals.totalBudget)}</strong>
+        </span>
+        <span>
+          Known balance<strong>{fmt(d.totals.totalBalance)}</strong>
+        </span>
       </div>
-
-      {d.cats.map((c) => (
-        <div
-          key={c.id}
-          onClick={() => h.openDetail(c.id)}
-          style={{ cursor: 'pointer', background: '#fff', border: '1px solid #F1E7E4', borderRadius: 20, padding: '17px 17px 15px', marginBottom: 12, boxShadow: '0 8px 20px rgba(58,44,46,0.05)' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-            <div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 600 }}>{c.name}</div>
-              <div style={{ fontSize: 12, color: '#9A868A', marginTop: 2 }}>{c.vendor}</div>
+      <BudgetCertainty
+        totals={d.totals}
+        onView={filter === 'Awaiting quote' ? undefined : () => setFilter('Awaiting quote')}
+      />
+      <SearchField value={search} onChange={setSearch} placeholder="Search items or vendors" />
+      <div className="filter-row" aria-label="Budget filter">
+        {['All items', 'To pay', 'Fully paid', 'Awaiting quote'].map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`filter-chip ${filter === f ? 'selected' : ''}`}
+            aria-pressed={filter === f}
+          >
+            {f}
+          </button>
+        ))}
+        <span className="filter-count">{filtered.length} items</span>
+      </div>
+      <div className="budget-list">
+        {filtered.map((c) => (
+          <button key={c.id} className="budget-card" onClick={() => h.openDetail(c.id)}>
+            <div className="budget-card-top">
+              <span
+                className="category-icon"
+                style={{ color: c.sliceColor, background: `${c.sliceColor}13` }}
+              >
+                <Icon name={categoryIcon(c.name)} size={23} />
+              </span>
+              <div className="budget-card-name">
+                <h2>{c.name}</h2>
+                <p>{c.vendor || 'Vendor to be decided'}</p>
+              </div>
+              <Icon name="chevron" size={17} />
             </div>
-            <span style={{ flex: '0 0 auto', fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: c.status.bg, color: c.status.color }}>
-              {c.status.label}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, gap: 6 }}>
-            <div>
-              <div style={cellLabel}>Budget</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3 }}>{c.budgetFmt}</div>
+            <div className="budget-money">
+              <div>
+                <span>Planned</span>
+                <strong>{c.budgetFmt}</strong>
+              </div>
+              <div>
+                <span>Quoted</span>
+                <strong style={{ color: c.quoteColor }}>{c.quoteFmt}</strong>
+              </div>
             </div>
-            <div>
-              <div style={cellLabel}>Quoted</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3, color: c.quoteColor }}>{c.quoteFmt}</div>
+            <div className="budget-paid">
+              <span>
+                <span className="positive">{c.paidFmt}</span> paid
+              </span>
+              <strong>
+                {c.hasQuote ? (
+                  <>
+                    {c.balanceFmt} <span>to go</span>
+                  </>
+                ) : (
+                  'Balance unknown'
+                )}
+              </strong>
             </div>
-            <div>
-              <div style={cellLabel}>Paid</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3, color: '#5E7A58' }}>{c.paidFmt}</div>
+            {c.hasQuote && (
+              <ProgressBar
+                value={c.paidPct}
+                color={c.quote > 0 && c.balance === 0 ? 'var(--sage)' : undefined}
+                label={`${c.name} paid`}
+              />
+            )}
+            <div className="budget-card-footer">
+              <span
+                className="status-badge"
+                style={{ background: c.status.bg, color: c.status.color }}
+              >
+                {c.status.label}
+              </span>
+              {c.overBudget ? (
+                <span className="over-budget">{c.overByFmt} over budget</span>
+              ) : (
+                <span className="muted">{c.hasQuote ? `${c.paidPct}% paid` : 'Quote needed'}</span>
+              )}
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={cellLabel}>Balance</div>
-              <div style={{ fontSize: 13.5, fontWeight: 800, marginTop: 3, color: '#A05C6A' }}>{c.balanceFmt}</div>
-            </div>
-          </div>
-
-          <div style={{ height: 7, borderRadius: 6, background: '#F1E7E4', overflow: 'hidden', marginTop: 13 }}>
-            <div style={{ height: '100%', borderRadius: 6, width: `${c.paidPct}%`, background: 'linear-gradient(90deg,#A05C6A,#C99BA4)' }} />
-          </div>
-
-          {c.overBudget && (
-            <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: '#A65454', background: '#F8E7E7', display: 'inline-block', padding: '3px 9px', borderRadius: 14 }}>
-              Over budget by {c.overByFmt}
-            </div>
-          )}
-        </div>
-      ))}
+          </button>
+        ))}
+      </div>
+      {!filtered.length && (
+        <EmptyState
+          icon="budget"
+          title={
+            search || filter !== 'All items'
+              ? 'No matching items'
+              : 'A beautiful day starts with a plan'
+          }
+          description={
+            search || filter !== 'All items'
+              ? 'Try another search or switch your filter.'
+              : 'Add your venue, flowers, photography, and every detail in between.'
+          }
+          action={
+            !search && filter === 'All items' ? (
+              <AddButton onClick={h.openCategory}>Add your first item</AddButton>
+            ) : undefined
+          }
+        />
+      )}
     </div>
   )
 }

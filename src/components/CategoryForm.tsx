@@ -19,7 +19,13 @@ interface Props {
   submitLabel?: string
 }
 
-export default function CategoryForm({ saving, onSubmit, initial, title = 'New budget item', submitLabel = 'Add item' }: Props) {
+export default function CategoryForm({
+  saving,
+  onSubmit,
+  initial,
+  title = 'New budget item',
+  submitLabel = 'Add item',
+}: Props) {
   // "To be decided" is a placeholder vendor — show it as empty so it's editable.
   const initialVendor = initial?.vendor && initial.vendor !== 'To be decided' ? initial.vendor : ''
   const [name, setName] = useState(initial?.name ?? '')
@@ -28,39 +34,97 @@ export default function CategoryForm({ saving, onSubmit, initial, title = 'New b
   const [quote, setQuote] = useState(initial?.quote ? String(initial.quote) : '')
   const [contact, setContact] = useState(initial?.contact ?? '')
 
-  const valid = name.trim().length > 0
+  const valid =
+    name.trim().length > 0 &&
+    Number.isFinite(Number(budget)) &&
+    Number(budget) >= 0 &&
+    Number.isFinite(Number(quote)) &&
+    Number(quote) >= 0
+
+  function submit() {
+    if (valid && !saving)
+      onSubmit({
+        name: name.trim(),
+        vendor: vendor.trim(),
+        contact: contact.trim(),
+        budget: Number(budget) || 0,
+        quote: Number(quote) || 0,
+      })
+  }
 
   return (
-    <div>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 21, fontWeight: 600, marginBottom: 18 }}>{title}</div>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        submit()
+      }}
+    >
+      <h2 id="sheet-title" className="sheet-title">
+        {title}
+      </h2>
+      <p className="sheet-subtitle">A place for every detail of your celebration.</p>
 
-      <Label>Item name</Label>
-      <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Photography" />
+      <Label htmlFor="categoryform-item-name">Item name</Label>
+      <TextInput
+        id="categoryform-item-name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="e.g. Photography"
+      />
 
-      <Label>Vendor</Label>
-      <TextInput value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="Vendor name" />
+      <Label htmlFor="categoryform-vendor">Vendor</Label>
+      <TextInput
+        id="categoryform-vendor"
+        value={vendor}
+        onChange={(e) => setVendor(e.target.value)}
+        placeholder="Vendor name"
+      />
 
       <div style={{ display: 'flex', gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <Label>Budget (Rs)</Label>
-          <TextInput value={budget} onChange={(e) => setBudget(e.target.value)} type="number" inputMode="numeric" placeholder="0" />
+          <Label htmlFor="categoryform-budget-rs">Budget (Rs)</Label>
+          <TextInput
+            id="categoryform-budget-rs"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="0"
+          />
         </div>
         <div style={{ flex: 1 }}>
-          <Label>Quoted (Rs)</Label>
-          <TextInput value={quote} onChange={(e) => setQuote(e.target.value)} type="number" inputMode="numeric" placeholder="0" />
+          <Label htmlFor="categoryform-quoted-rs">Quoted (Rs)</Label>
+          <TextInput
+            id="categoryform-quoted-rs"
+            value={quote}
+            onChange={(e) => setQuote(e.target.value)}
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="Not quoted yet"
+          />
         </div>
       </div>
+      <p className="quote-form-hint">
+        Leave the quote blank until a vendor confirms their price. Unquoted items use your planned
+        budget in the provisional estimate.
+      </p>
 
-      <Label>Contact</Label>
-      <TextInput value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Phone number" />
+      <Label htmlFor="categoryform-contact">Contact</Label>
+      <TextInput
+        id="categoryform-contact"
+        value={contact}
+        onChange={(e) => setContact(e.target.value)}
+        type="tel"
+        placeholder="Phone number"
+      />
 
-      <button
-        disabled={!valid || saving}
-        onClick={() => valid && onSubmit({ name: name.trim(), vendor: vendor.trim(), contact: contact.trim(), budget: Number(budget) || 0, quote: Number(quote) || 0 })}
-        style={primaryBtn}
-      >
+      <button disabled={!valid || saving} type="submit" style={primaryBtn}>
         {saving ? 'Saving…' : submitLabel}
       </button>
-    </div>
+    </form>
   )
 }

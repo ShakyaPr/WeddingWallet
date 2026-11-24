@@ -8,6 +8,8 @@ export interface StatusBadge {
 }
 
 export interface ComputedCategory extends Category {
+  hasQuote: boolean
+  projected: number
   paid: number
   balance: number
   paidPct: number
@@ -61,17 +63,17 @@ export function computeCategories(categories: Category[], payments: Payment[]): 
     const pct = quote > 0 ? Math.min(100, Math.round((paid / quote) * 100)) : 0
 
     let status: StatusBadge
-    if (quote === 0 && paid === 0) status = { label: 'Not started', bg: '#F0E9E9', color: '#9A868A' }
-    else if (paid <= 0) status = { label: 'Pending', bg: '#F0E9E9', color: '#9A868A' }
-    // Without a quote there is nothing to be "fully" paid against — money is out, but the total is unknown.
-    else if (quote === 0) status = { label: 'No quote yet', bg: '#F6EEDD', color: '#9A7434' }
-    else if (paid >= quote) status = { label: 'Fully paid', bg: '#E9F0E6', color: '#5E7A58' }
-    else status = { label: 'Partially paid', bg: '#F6EEDD', color: '#9A7434' }
+    if (quote === 0) status = { label: 'Awaiting quote', bg: '#F6EEDD', color: '#7D5B20' }
+    else if (paid <= 0) status = { label: 'Pending', bg: '#F0E9E9', color: '#71636A' }
+    else if (paid >= quote) status = { label: 'Fully paid', bg: '#E9F0E6', color: '#526E4C' }
+    else status = { label: 'Partially paid', bg: '#F6EEDD', color: '#7D5B20' }
 
     const overBudget = quote > budget && budget > 0
 
     return {
       ...c,
+      hasQuote: quote > 0,
+      projected: Math.max(quote > 0 ? quote : budget, paid),
       paid,
       quote,
       budget,
@@ -83,16 +85,20 @@ export function computeCategories(categories: Category[], payments: Payment[]): 
       sliceColor: PALETTE[i % PALETTE.length],
       quoteColor: overBudget ? '#A65454' : '#3A2C2E',
       budgetFmt: fmt(budget),
-      quoteFmt: quote > 0 ? fmt(quote) : '—',
+      quoteFmt: quote > 0 ? fmt(quote) : 'Awaiting quote',
       paidFmt: fmt(paid),
-      balanceFmt: fmt(balance),
+      balanceFmt: quote > 0 ? fmt(balance) : 'Awaiting quote',
       payments: cps,
     }
   })
 }
 
 /** Contributions grouped by payer, largest first. Each person keeps their own payments (newest first). */
-export function computePeople(payments: Payment[], payers: Payer[], totalPaid: number): ComputedPerson[] {
+export function computePeople(
+  payments: Payment[],
+  payers: Payer[],
+  totalPaid: number
+): ComputedPerson[] {
   const map: Record<string, Payment[]> = {}
   payments.forEach((p) => {
     if (!map[p.paid_by]) map[p.paid_by] = []
@@ -153,15 +159,36 @@ export interface Totals {
   totalBalance: number
   heroPct: number
   overBudgetDiff: number
+  awaitingQuoteCount: number
+  unquotedBudget: number
+  projectedTotal: number
+  projectedDiff: number
 }
 
 export function computeTotals(cats: ComputedCategory[]): Totals {
   const totalBudget = cats.reduce((a, c) => a + c.budget, 0)
   const totalQuote = cats.reduce((a, c) => a + c.quote, 0)
   const totalPaid = cats.reduce((a, c) => a + c.paid, 0)
-  const totalBalance = Math.max(totalQuote - totalPaid, 0)
-  const heroPct = totalQuote > 0 ? Math.round((totalPaid / totalQuote) * 100) : 0
-  return { totalBudget, totalQuote, totalPaid, totalBalance, heroPct, overBudgetDiff: totalQuote - totalBudget }
+  const totalBalance = cats.reduce((sum, c) => sum + c.balance, 0)
+  const awaitingQuoteCount = cats.filter((c) => !c.hasQuote).length
+  const unquotedBudget = cats.filter((c) => !c.hasQuote).reduce((sum, c) => sum + c.budget, 0)
+  const projectedTotal = cats.reduce((sum, c) => sum + c.projected, 0)
+  const quotedPaid = cats
+    .filter((c) => c.hasQuote)
+    .reduce((sum, c) => sum + Math.min(c.paid, c.quote), 0)
+  const heroPct = totalQuote > 0 ? Math.round((quotedPaid / totalQuote) * 100) : 0
+  return {
+    totalBudget,
+    totalQuote,
+    totalPaid,
+    totalBalance,
+    heroPct,
+    overBudgetDiff: totalQuote - totalBudget,
+    awaitingQuoteCount,
+    unquotedBudget,
+    projectedTotal,
+    projectedDiff: projectedTotal - totalBudget,
+  }
 }
 
 /** Everything the screens need, derived from raw state in one place. */
@@ -170,7 +197,10 @@ export function derive(state: AppState) {
   const totals = computeTotals(cats)
   const spentCats = cats
     .filter((c) => c.paid > 0)
-    .map((c) => ({ ...c, sharePct: totals.totalPaid > 0 ? Math.round((c.paid / totals.totalPaid) * 100) : 0 }))
+    .map((c) => ({
+      ...c,
+      sharePct: totals.totalPaid > 0 ? Math.round((c.paid / totals.totalPaid) * 100) : 0,
+    }))
   const people = computePeople(state.payments, state.payers, totals.totalPaid)
   const vendors = computeVendors(cats)
   return { cats, totals, spentCats, people, vendors }
