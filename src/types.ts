@@ -47,3 +47,26 @@ export interface AppState {
 export type NewCategory = Omit<Category, 'id' | 'sort_order'> & { sort_order?: number }
 export type NewPayment = Omit<Payment, 'id'>
 export type NewPayer = Omit<Payer, 'id'>
+
+export interface ActivityEntry {
+  id: string
+  entity_type: 'category' | 'payment' | 'person'
+  entity_id: string
+  entity_label: string
+  action: 'created' | 'updated' | 'deleted' | 'restored'
+  actor_id: string
+  actor_name: string
+  before_data: Record<string, unknown> | null
+  after_data: Record<string, unknown> | null
+  restores_id: string | null
+  created_at: string
+}
+
+export interface HistoryPage {
+  entries: ActivityEntry[]
+  nextCursor: string | null
+}
+export interface DeleteResult {
+  ok: true
+  activity_id: string
+}

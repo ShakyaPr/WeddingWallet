@@ -1,4 +1,16 @@
-import type { AppState, Category, Me, NewCategory, NewPayer, NewPayment, Payer, Payment } from '../types'
+import type {
+  ActivityEntry,
+  DeleteResult,
+  HistoryPage,
+  AppState,
+  Category,
+  Me,
+  NewCategory,
+  NewPayer,
+  NewPayment,
+  Payer,
+  Payment,
+} from '../types'
 
 /** Send the browser to Keycloak, coming back to the current screen afterwards. */
 export function goToLogin() {
@@ -29,6 +41,12 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  history: (before?: string) =>
+    req<HistoryPage>(
+      '/history?limit=100' + (before ? '&before=' + encodeURIComponent(before) : '')
+    ),
+  restore: (activityId: string) =>
+    req<{ ok: true }>(`/history/${activityId}/restore`, { method: 'POST', body: '{}' }),
   me: () => req<Me>('/me'),
   getState: () => req<AppState>('/state'),
 
@@ -36,13 +54,24 @@ export const api = {
     req<Category>('/categories', { method: 'POST', body: JSON.stringify(c) }),
   updateCategory: (id: string, patch: Partial<NewCategory>) =>
     req<Category>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-  deleteCategory: (id: string) =>
-    req<{ ok: true }>(`/categories/${id}`, { method: 'DELETE' }),
+  deleteCategory: (id: string) => req<DeleteResult>(`/categories/${id}`, { method: 'DELETE' }),
 
   addPayment: (p: NewPayment) =>
     req<Payment>('/payments', { method: 'POST', body: JSON.stringify(p) }),
-  deletePayment: (id: string) =>
-    req<{ ok: true }>(`/payments/${id}`, { method: 'DELETE' }),
+  updatePayment: (id: string, patch: Partial<NewPayment>) =>
+    req<Payment>(`/payments/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deletePayment: (id: string) => req<DeleteResult>(`/payments/${id}`, { method: 'DELETE' }),
 
   addPayer: (p: NewPayer) => req<Payer>('/payers', { method: 'POST', body: JSON.stringify(p) }),
+}
+
+export async function allHistory(): Promise<ActivityEntry[]> {
+  const entries: ActivityEntry[] = []
+  let before: string | undefined
+  do {
+    const page = await api.history(before)
+    entries.push(...page.entries)
+    before = page.nextCursor || undefined
+  } while (before)
+  return entries
 }
