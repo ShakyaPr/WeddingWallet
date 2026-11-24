@@ -27,6 +27,16 @@ export interface Payment {
   amount: number
 }
 
+/** The signed-in Keycloak user (GET /api/me). */
+export interface Me {
+  sub: string
+  username: string
+  email: string
+  name: string
+  /** false only in local development with AUTH_DISABLED=true */
+  authEnabled: boolean
+}
+
 export interface AppState {
   categories: Category[]
   payments: Payment[]

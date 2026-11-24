@@ -1,25 +1,36 @@
 # Deploying WeddingWallet on Dokploy
 
-WeddingWallet runs as **two services inside one Dokploy project**:
+WeddingWallet runs as **three services inside one Dokploy project**:
 
 ```
-                    Dokploy server
- ┌────────────────────────────────────────────────────────────┐
- │  Traefik (ports 80/443, HTTPS)                              │
- │     │  wallet.example.com                                   │
- │     ▼                                                       │
- │  [Application] weddingwallet      ──DATABASE_URL──▶  [Database] weddingwallet-db
- │  Dockerfile → Node server :3000                      PostgreSQL :5432
- │  (serves the React SPA + /api)                       (NOT exposed to the internet)
- └────────────────────────────────────────────────────────────┘
+                           Dokploy server
+ ┌─────────────────────────────────────────────────────────────────────────┐
+ │  Traefik (ports 80/443, HTTPS)                                          │
+ │     │ wallet.example.com                    │ auth.example.com          │
+ │     ▼                                       ▼                           │
+ │  [Application] weddingwallet  ◀── OIDC ──▶  [Template] keycloak         │
+ │  Dockerfile → Node server :3000             Keycloak :8080              │
+ │  (serves the React SPA + /api)              (+ its own Postgres)        │
+ │     │ DATABASE_URL                                                      │
+ │     ▼                                                                   │
+ │  [Database] weddingwallet-db   PostgreSQL :5432 (NOT exposed)           │
+ └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 - The **database** is its own Dokploy PostgreSQL service with its own volume and backups.
+- **Keycloak** handles sign-in. You create the users there; the app has no sign-up page.
 - The **app** is one Docker container built from the [`Dockerfile`](Dockerfile). It
   serves the React SPA and the `/api` from port **3000**, and reaches Postgres over
   Dokploy's internal Docker network through the `DATABASE_URL` environment variable.
 - On every start the app runs [`db/schema.sql`](db/schema.sql), so you **never have to
   create tables by hand**. The file only uses `create … if not exists`, so this is safe.
+
+**How login works:** when you open the app, it sends you to Keycloak's login page. After
+you sign in, Keycloak sends you back, and the app server keeps your session in Postgres.
+Your browser only gets an HttpOnly session cookie, never any Keycloak tokens. The server
+re-checks each session with Keycloak every few minutes (whenever Keycloak's access token
+expires). So if you disable a user or remove their access in Keycloak, they are signed
+out of the app within about 5 minutes.
 
 > Dokploy's UI changes a little between versions. If a label below doesn't match
 > yours exactly, look for the closest one.
@@ -33,9 +44,14 @@ WeddingWallet runs as **two services inside one Dokploy project**:
 - [ ] Dokploy can read the repo:
       **Settings → Git** → connect GitHub (needed for private repos).
       For a public repo you can also use the plain **Git** provider with the HTTPS URL.
-- [ ] *(For HTTPS)* you have a domain or subdomain, e.g. `wallet.example.com`, with a
-      DNS **A record** pointing to your server's public IP. Ports **80** and **443** must be
-      open on the server firewall.
+- [ ] **Two subdomains with HTTPS**, each with a DNS **A record** pointing to your
+      server's public IP:
+      - `wallet.example.com` for the app
+      - `auth.example.com` for Keycloak
+
+      Ports **80** and **443** must be open on the server firewall.
+      Login needs HTTPS: Keycloak's cookies are `Secure`, so the free HTTP-only
+      `sslip.io` domains won't work for signing in.
 
 ---
 
@@ -88,7 +104,94 @@ then enter the database name.
 
 ---
 
-## Part 2 — Create the WeddingWallet application
+## Part 2 — Set up Keycloak
+
+> **Already have a Keycloak server?** Skip 2a and do 2b–2e in your existing Keycloak.
+> You can use any realm, but a dedicated one keeps the family's accounts separate.
+
+### 2a. Deploy Keycloak on Dokploy
+
+1. In the same project: **Create Service → Template**, search for **Keycloak**, and
+   create it. The template includes Keycloak 26 and its own Postgres database for
+   Keycloak's data (users, settings).
+2. Open the new service and edit its compose file:
+   - Change `command: start-dev` to **`command: start`**. `start-dev` is Keycloak's
+     development mode; `start` is production mode. The template already sets the
+     options production mode needs: `KC_HTTP_ENABLED=true`, `KC_PROXY_HEADERS=xforwarded`
+     and `KC_HOSTNAME`.
+   - Make sure `KC_HOSTNAME` resolves to your Keycloak domain, e.g.
+     `https://auth.example.com`. If the compose file uses a variable there, set that
+     variable in the **Environment** tab.
+3. **Domains tab:** set the domain for the `keycloak` service to:
+   - Host: `auth.example.com`
+   - Container Port: **`8080`** (Keycloak's port inside its container; it doesn't clash
+     with anything on the server)
+   - HTTPS **on**, Certificate **Let's Encrypt**
+4. **Environment tab:** note the generated admin password (`KEYCLOAK_ADMIN_PASSWORD`, or
+   similar), then click **Deploy**.
+5. Open `https://auth.example.com/admin` and sign in as `admin` with that password.
+
+Keycloak's own database lives inside this template's compose service, not in
+`weddingwallet-db`. It holds your user accounts, so if you don't want to recreate users
+after a server loss, back up its volume (Dokploy **Volume Backups**) or export the realm
+from time to time.
+
+### 2b. Create a realm
+
+1. Open the realm dropdown at the top left → **Create realm**.
+2. Set **Realm name** to `weddingwallet`, then click **Create**. The name is
+   case-sensitive and becomes part of the issuer URL.
+3. In **Realm settings**:
+   - **Login** tab: keep **User registration** **off**, so only accounts you create
+     can sign in. Optionally turn on **Remember me**.
+   - **Security defenses → Brute force detection:** turn it **on**. This locks out
+     password-guessing on the public login page.
+
+### 2c. Create the client for WeddingWallet
+
+1. **Clients → Create client**
+   - **General settings:** Client type **OpenID Connect**, Client ID **`weddingwallet`**.
+     Click **Next**.
+   - **Capability config:** **Client authentication: On**. Under *Authentication flow*,
+     tick **Standard flow** and untick **Direct access grants**. If a **PKCE Method**
+     field is shown, choose `S256`. Click **Next**.
+   - **Login settings:**
+
+     | Field | Value |
+     |---|---|
+     | Root URL | `https://wallet.example.com` |
+     | Home URL | `https://wallet.example.com` |
+     | Valid redirect URIs | `https://wallet.example.com/auth/callback` |
+     | Valid post logout redirect URIs | `https://wallet.example.com/*` |
+     | Web origins | *(leave empty)* |
+
+     Click **Save**.
+2. Open the client's **Credentials** tab and copy the **Client Secret**. The app needs it
+   as `OIDC_CLIENT_SECRET`.
+
+### 2d. Create the access role (recommended)
+
+**Realm roles → Create role**, set **Role name** to `weddingwallet-user`, then click
+**Save**. The app only lets in users who have this role (`OIDC_REQUIRED_ROLE`), so a
+Keycloak account alone isn't enough to see the finances.
+
+### 2e. Create the users
+
+For each family member:
+
+1. **Users → Add user**
+   - **Username:** e.g. `piyumi`
+   - **Email:** their email, with **Email verified: On**
+   - **First name / Last name:** these are shown in the app's account menu
+   - Click **Create**.
+2. **Credentials** tab → **Set password**. Enter a password and leave **Temporary**
+   **on**, so they must choose their own password at first login. Click **Save**.
+3. **Role mapping** tab → **Assign role** → **Filter by realm roles** → tick
+   `weddingwallet-user` → **Assign**.
+
+---
+
+## Part 3 — Create the WeddingWallet application
 
 1. In the same project: **Create Service → Application**. Name it `weddingwallet`.
    It **must be on the same server** as the database so the internal hostname resolves.
@@ -105,7 +208,7 @@ then enter the database name.
    - Docker Build Stage: *(leave empty, so the final `runtime` stage is used)*
    - Click **Save**.
 
-4. **Environment tab.** Paste the following, using the URL you copied in Part 1:
+4. **Environment tab.** Paste the following, using your values from Parts 1 and 2:
 
    ```env
    DATABASE_URL=postgresql://weddingwallet:YOUR_PASSWORD@weddingwallet-db-a1b2c3:5432/weddingwallet
@@ -113,95 +216,56 @@ then enter the database name.
    # true = load the starter budget/payments, but only if the DB is completely empty.
    # Use false if you are importing your Supabase data (Part 4).
    SEED_DATA=true
+
+   # Login with Keycloak
+   APP_URL=https://wallet.example.com
+   OIDC_ISSUER=https://auth.example.com/realms/weddingwallet
+   OIDC_CLIENT_ID=weddingwallet
+   OIDC_CLIENT_SECRET=paste-the-client-secret-from-2c
+   OIDC_REQUIRED_ROLE=weddingwallet-user
    ```
 
    Click **Save**. These are **runtime** variables, so leave **Build Time Arguments** and
    **Build-time Secrets** empty. The build doesn't need any secrets.
 
+   - `APP_URL` must be exactly the app's public address: `https`, and no trailing
+     slash. It's used to build the redirect URI you registered in 2c.
+   - `OIDC_ISSUER` is your Keycloak URL + `/realms/` + the realm name.
+   - The app **refuses to start** if any of the login variables are missing. That's
+     deliberate: it can never run without a login by accident.
+
    > Tip: rather than pasting the password twice, you can define it once as a project-level
    > variable and reference it as `${{project.DB_PASSWORD}}`.
 
-5. Click **Deploy**. In **Deployments → (latest) → logs** you should see the Docker
+5. **Domains tab → Create Domain**
+   - Host: `wallet.example.com`
+   - Path: `/`
+   - Container Port: **`3000`**. This is the port inside the app's container. It doesn't
+     clash with Dokploy's own dashboard on the server's port 3000.
+   - HTTPS: **on**
+   - Certificate: **Let's Encrypt**
+   - Click **Create**.
+
+6. Click **Deploy**. In **Deployments → (latest) → logs** you should see the Docker
    build finish. Then the app's **Logs** tab should show:
 
    ```
    Database was empty — loaded db/seed.sql        ← only with SEED_DATA=true, first time
    Database schema is up to date
+   Keycloak login: ON (issuer https://auth.example.com/realms/weddingwallet, client weddingwallet)
    WeddingWallet listening on http://0.0.0.0:3000
    ```
 
-6. **Domains tab → Create Domain**
-
-   **Quick test (HTTP only):** click the **dice icon** next to *Host* to generate a free
-   `*.sslip.io` domain. Then set:
-   - Path: `/`
-   - Container Port: `3000`
-   - HTTPS: **off**
-   - Click **Create**.
-
-   **Real domain (HTTPS):** make sure the DNS A record already points at the server. Then set:
-   - Host: `wallet.example.com`
-   - Path: `/`
-   - Container Port: **`3000`**
-   - HTTPS: **on**
-   - Certificate: **Let's Encrypt**
-   - Click **Create**.
-
-   You don't need to redeploy after adding a domain on an application.
-
-7. Open the domain. You should see the dashboard with your data.
-   `https://wallet.example.com/api/health` should return `{"ok":true,"db":"up"}`.
+7. Open `https://wallet.example.com`. You'll be sent to the Keycloak login page. Sign in
+   as one of the users from 2e (and set a new password if it was temporary). You land
+   back on the dashboard. Tap the round avatar at the top right to see who is signed in
+   and to **Sign out**.
 
 8. *(Optional)* If you used `SEED_DATA=true`, set it back to `false` in **Environment**.
    It never duplicates data, but turning it off makes the intent clear.
 
----
-
-## Part 3 — Lock the site down (do not skip)
-
-The app has **no login screen of its own**. On Cloudflare Pages, Cloudflare Access did
-that job. On Dokploy, anyone who finds the URL can see and edit everything until you
-add one of the options below.
-
-### Option A — Dokploy Basic Auth (simplest)
-
-1. Open the `weddingwallet` application → **Advanced → Security** → add a
-   **Username** and **Password**.
-2. Save, then **Redeploy** if Dokploy asks you to.
-3. Share the username and password with family. The browser asks for them once and
-   remembers them.
-
-This works with the free `sslip.io` domain too, but only use it over **HTTPS**:
-over plain HTTP the password is sent unencrypted.
-The container's health check isn't affected, because it runs inside the container
-and doesn't pass through Traefik.
-
-### Option B — Keep Google login with Cloudflare Access
-
-Use this if you want the same "only these Gmail addresses" behaviour as before. Your
-domain's DNS must be on Cloudflare.
-
-1. In Cloudflare DNS, create the A record for `wallet.example.com` as **DNS only**
-   (grey cloud). In Dokploy, add the domain with HTTPS and Let's Encrypt as in Part 2,
-   then wait until the certificate works.
-2. Switch the record to **Proxied** (orange cloud). Set **SSL/TLS → Overview** to
-   **Full (strict)**.
-3. **Zero Trust → Access → Applications → Add an application → Self-hosted**:
-   - Application domain: `wallet.example.com`
-   - Identity provider: Google
-   - Policy: **Allow**, Include → Emails → your allowed Gmail addresses
-4. Copy the application's **Application Audience (AUD) Tag**. In Dokploy, add these to
-   the app's **Environment** tab, then click **Deploy**:
-
-   ```env
-   CF_ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
-   CF_ACCESS_AUD=the-aud-tag
-   ```
-
-   The app log should now say `Cloudflare Access JWT check: ON`.
-   **This step is required, not optional.** Anyone who knows your server's IP could
-   otherwise go around Cloudflare. With these set, the API rejects any request that
-   doesn't carry a valid Cloudflare login token.
+> **Upgrading from the earlier Basic Auth setup?** Remove it under **Advanced → Security**.
+> Otherwise people have to log in twice.
 
 ---
 
@@ -258,6 +322,31 @@ over SSH.
 
 ## Part 5 — Day-to-day
 
+### Managing who can sign in (all in Keycloak)
+
+| To… | In Keycloak (realm `weddingwallet`) |
+|---|---|
+| Add a person | Create the user, set a password, assign `weddingwallet-user` (Part 2e) |
+| Reset a password | **Users →** the user **→ Credentials → Reset password** |
+| Block someone | **Users →** the user → turn **Enabled** off. They're signed out of the app within ~5 min. |
+| Remove access but keep the account | **Role mapping** → unassign `weddingwallet-user`. Also takes effect within ~5 min. |
+| Sign someone out now | **Users →** the user **→ Sessions → Sign out** |
+
+How quickly these take effect depends on Keycloak's **Access Token Lifespan**
+(**Realm settings → Tokens**, default 5 minutes). The app re-checks each session with
+Keycloak whenever that token expires.
+
+### How long people stay signed in
+
+This is controlled by Keycloak, under **Realm settings → Sessions**. The defaults are
+**SSO Session Idle** 30 minutes and **SSO Session Max** 10 hours: after 30 minutes
+without using the app, or 10 hours in total, people enter their password again. For a
+family app you might set Idle to `7 days` and Max to `30 days`. Alternatively, turn on
+**Remember me** (Realm settings → Login) and set the *Remember Me* versions of those two
+values.
+
+### Deploying and maintenance
+
 - **Deploy updates:** push to `main`. If **Auto Deploy** is on (General tab, GitHub
   provider), Dokploy rebuilds automatically. Otherwise click **Deploy**.
 - **Database changes:** add *re-runnable* SQL to [`db/schema.sql`](db/schema.sql)
@@ -278,6 +367,7 @@ over SSH.
   ```
 
   The times are in nanoseconds. Use `wget`, not `curl`: the Alpine image has no `curl`.
+  `/api/health` is the only URL that works without signing in.
 
 ---
 
@@ -286,18 +376,33 @@ over SSH.
 | Variable | Required | Example | What it does |
 |---|---|---|---|
 | `DATABASE_URL` | **yes** | `postgresql://weddingwallet:pw@weddingwallet-db-a1b2c3:5432/weddingwallet` | Postgres connection. In Dokploy, use the DB's **Internal Connection URL**. |
+| `APP_URL` | **yes** | `https://wallet.example.com` | The app's public URL. Used for the login redirect and cookie security. |
+| `OIDC_ISSUER` | **yes** | `https://auth.example.com/realms/weddingwallet` | Keycloak realm URL. |
+| `OIDC_CLIENT_ID` | **yes** | `weddingwallet` | Keycloak client ID (Part 2c). |
+| `OIDC_CLIENT_SECRET` | **yes** | `aBcD…` | Keycloak client secret (client → **Credentials**). |
+| `OIDC_REQUIRED_ROLE` | no | `weddingwallet-user` | Only users with this realm or client role can sign in. Leave empty to allow every user in the realm. |
 | `PORT` | no | `3000` | Port the server listens on. Must match the domain's **Container Port**. |
 | `SEED_DATA` | no | `true` | Loads [`db/seed.sql`](db/seed.sql) on start, but only into a completely empty DB. |
-| `CF_ACCESS_TEAM_DOMAIN` | no | `team.cloudflareaccess.com` | With `CF_ACCESS_AUD`, enables Cloudflare Access JWT checks (Part 3, Option B). |
-| `CF_ACCESS_AUD` | no | `4f3c…` | Cloudflare Access Application Audience tag. |
+| `AUTH_DISABLED` | no | `true` | **Local development only.** Skips login. The Docker image refuses to start with it. |
+| `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` | no | | Optional extra layer if the site is *also* behind Cloudflare Access: the API then checks the Access JWT too (see [`server/access.ts`](server/access.ts)). |
 
 ## Troubleshooting
 
-| Symptom (app **Logs** tab) | Fix |
+| Symptom | Fix |
 |---|---|
-| `Waiting for Postgres … ENOTFOUND weddingwallet-db-…` | The host in `DATABASE_URL` is wrong, the DB service isn't deployed, or the DB is on a different server. Copy the **Internal Connection URL** again. |
-| `password authentication failed` | The password in `DATABASE_URL` doesn't match. If it contains special characters, URL-encode them (`@` → `%40`, `#` → `%23`, …). |
-| `DATABASE_URL is not set` | Add it in **Environment**, click **Save**, then **Deploy**. |
-| `Could not prepare the database` | The app retried for about 60 s and gave up. Check the DB service's logs. Swarm restarts the app automatically. |
-| Domain shows **404 / Bad Gateway** | The domain's **Container Port** must be `3000`. |
+| Log: `Waiting for Postgres … ENOTFOUND weddingwallet-db-…` | The host in `DATABASE_URL` is wrong, the DB service isn't deployed, or the DB is on a different server. Copy the **Internal Connection URL** again. |
+| Log: `password authentication failed` | The password in `DATABASE_URL` doesn't match. If it contains special characters, URL-encode them (`@` → `%40`, `#` → `%23`, …). |
+| Log: `DATABASE_URL is not set` | Add it in **Environment**, click **Save**, then **Deploy**. |
+| Log: `Could not prepare the database` | The app retried for about 60 s and gave up. Check the DB service's logs. Swarm restarts the app automatically. |
+| Log: `Keycloak login is not configured. Missing: …` | Add the listed variables in **Environment**, then **Deploy**. |
+| Log: `Keycloak login: cannot reach https://auth…` | Check `OIDC_ISSUER`: the realm name is case-sensitive, and there's no trailing `/`. Is Keycloak running, and does `https://auth.example.com/realms/weddingwallet` open in a browser? The app server must also be able to reach that public URL itself. |
+| Log: `… issuer does not match the expected issuer` | `OIDC_ISSUER` must be Keycloak's **public** URL (the one in `KC_HOSTNAME`), e.g. `https://auth.example.com/realms/weddingwallet`, not an internal Docker hostname. |
+| Keycloak page: **Invalid parameter: redirect_uri** | **Valid redirect URIs** in the Keycloak client must be exactly `APP_URL` + `/auth/callback`, e.g. `https://wallet.example.com/auth/callback`. |
+| App page: **Sign-in failed** | Look for `Code exchange failed:` in the app log. `invalid_client` / `unauthorized_client` means `OIDC_CLIENT_SECRET` is wrong, or **Client authentication** is off in the client. |
+| App page: **No access** | The user is missing the `weddingwallet-user` role (Part 2e). Use **Sign in as someone else** to switch accounts. |
+| After **Sign out**, Keycloak shows an error about the redirect URI | Add `https://wallet.example.com/*` to **Valid post logout redirect URIs**. |
+| Keycloak login loops or says **Cookie not found** | Both the app and Keycloak must use **HTTPS** with real domains (Part 0). |
+| People get signed out too often | Increase **SSO Session Idle / Max** (Part 5). |
+| `http://SERVER_IP:3000` shows the Dokploy dashboard | That's expected: the app isn't published on the server's port 3000. Open it through its domain. |
+| Domain shows **404 / Bad Gateway** | The domain's **Container Port** must be `3000` for the app, or `8080` for Keycloak. |
 | Let's Encrypt certificate never appears | The DNS record isn't pointing at the server yet, or ports 80/443 are closed. With Cloudflare, the record must be **DNS only** while the certificate is issued. |

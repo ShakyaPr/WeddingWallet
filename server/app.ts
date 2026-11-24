@@ -1,12 +1,19 @@
 import { Hono, type Context } from 'hono'
+import { HTTPException } from 'hono/http-exception'
+import { csrf } from 'hono/csrf'
 import { serveStatic } from '@hono/node-server/serve-static'
 import type { Pool } from './db.js'
 import { verifyAccess, type AccessConfig } from './access.js'
+import { DEV_USER, type Auth, type AuthEnv } from './auth.js'
 
 export interface AppConfig {
   /** Directory holding the built SPA (`vite build` output). */
   staticRoot: string
   access: AccessConfig
+  /** Keycloak login. `null` only when AUTH_DISABLED=true (local development). */
+  auth: Auth | null
+  /** Public URL of the app (APP_URL); used for the CSRF origin check. */
+  appUrl?: URL
 }
 
 const num = (v: unknown, fallback = 0) => {
@@ -27,14 +34,15 @@ function statusFor(err: unknown): 400 | 409 | 500 {
 }
 
 function onError(err: Error, c: Context) {
+  if (err instanceof HTTPException) return err.getResponse() // e.g. 403 from the CSRF check
   const status = statusFor(err)
   if (status === 500) console.error('API error:', err)
   // Return errors as JSON so the frontend can show a real message.
   return c.json({ error: err.message || 'Internal error' }, status)
 }
 
-function createApi(pool: Pool, access: AccessConfig) {
-  const api = new Hono()
+function createApi(pool: Pool, cfg: AppConfig) {
+  const api = new Hono<AuthEnv>()
   api.onError(onError)
 
   // Health check for Dokploy / Docker Swarm. Registered before the Access
@@ -51,12 +59,29 @@ function createApi(pool: Pool, access: AccessConfig) {
   // Optional Cloudflare Access JWT verification (no-op unless CF_ACCESS_* are set).
   api.use('*', async (c, next) => {
     try {
-      await verifyAccess(c.req.raw, access)
+      await verifyAccess(c.req.raw, cfg.access)
     } catch (err) {
       return c.json({ error: 'Unauthorized: ' + (err as Error).message }, 401)
     }
     await next()
   })
+
+  // Block cross-site form posts (the session is a cookie). The SPA sends JSON,
+  // which browsers can't send cross-site without CORS, so it is unaffected.
+  api.use('*', csrf(cfg.appUrl ? { origin: cfg.appUrl.origin } : undefined))
+
+  // Every route below requires a signed-in Keycloak user.
+  if (cfg.auth) {
+    api.use('*', cfg.auth.requireApiUser())
+  } else {
+    api.use('*', async (c, next) => {
+      c.set('user', DEV_USER)
+      await next()
+    })
+  }
+
+  // Who am I? (name / email shown in the app, plus whether logout is available)
+  api.get('/me', (c) => c.json({ ...c.get('user'), authEnabled: Boolean(cfg.auth) }))
 
   // Reject malformed ids up front instead of letting Postgres throw.
   api.use('/:table/:id', async (c, next) => {
@@ -179,7 +204,17 @@ function createApi(pool: Pool, access: AccessConfig) {
 export function createApp(pool: Pool, cfg: AppConfig) {
   const app = new Hono()
 
-  app.route('/api', createApi(pool, cfg.access))
+  app.route('/api', createApi(pool, cfg))
+
+  // ---- Login / logout with Keycloak ---------------------------------------
+  if (cfg.auth) {
+    app.route('/auth', cfg.auth.routes())
+    // Signed-out visitors opening a page go straight to the Keycloak login.
+    // (JS/CSS/images stay public: they contain no data.)
+    app.use('*', cfg.auth.requirePageUser())
+  } else {
+    app.all('/auth/*', (c) => c.redirect('/', 303))
+  }
 
   // ---- The React SPA (built by `vite build` into cfg.staticRoot) ----------
   // Vite puts content-hashed files under /assets, so they can be cached

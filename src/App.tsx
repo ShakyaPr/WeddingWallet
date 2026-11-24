@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { AppState, NewCategory, NewPayer, NewPayment } from './types'
+import type { AppState, Me, NewCategory, NewPayer, NewPayment } from './types'
 import type { DashLayout, Handlers, Tab } from './viewtypes'
 import { derive } from './lib/compute'
 import { api } from './lib/api'
@@ -15,6 +15,7 @@ import PaymentForm from './components/PaymentForm'
 import CategoryForm from './components/CategoryForm'
 import PersonForm from './components/PersonForm'
 import CategoryDetail from './components/CategoryDetail'
+import AccountSheet, { initialsOf } from './components/AccountSheet'
 
 type ModalState =
   | { type: 'payment'; categoryId?: string }
@@ -22,12 +23,14 @@ type ModalState =
   | { type: 'editCategory'; categoryId: string }
   | { type: 'person' }
   | { type: 'detail'; categoryId: string }
+  | { type: 'account' }
   | null
 
 const COUPLE = 'Piyumi & Shakya'
 
 export default function App() {
   const [state, setState] = useState<AppState | null>(null)
+  const [me, setMe] = useState<Me | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
   const [dashLayout, setDashLayout] = useState<DashLayout>('cards')
@@ -44,6 +47,7 @@ export default function App() {
   }
   useEffect(() => {
     load()
+    api.me().then(setMe, () => {})
   }, [])
 
   const d = useMemo(() => (state ? derive(state) : null), [state])
@@ -108,9 +112,14 @@ export default function App() {
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 600, letterSpacing: 0.2, lineHeight: 1 }}>{COUPLE}</div>
               <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2.4, textTransform: 'uppercase', color: '#B49398', marginTop: 6 }}>Wedding Budget</div>
             </div>
-            <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg,#C99BA4,#7E4451)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Playfair Display', serif", color: '#fff', fontSize: 16, fontWeight: 600 }}>
-              P<span style={{ opacity: 0.55 }}>&amp;</span>S
-            </div>
+            <button
+              onClick={() => me && setModal({ type: 'account' })}
+              aria-label={me ? `Account: ${me.name || me.username}` : 'Account'}
+              title={me ? me.name || me.username : undefined}
+              style={{ width: 42, height: 42, padding: 0, border: 'none', borderRadius: '50%', background: 'linear-gradient(135deg,#C99BA4,#7E4451)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Playfair Display', serif", color: '#fff', fontSize: 16, fontWeight: 600, cursor: me ? 'pointer' : 'default' }}
+            >
+              {me ? initialsOf(me) : (<>P<span style={{ opacity: 0.55 }}>&amp;</span>S</>)}
+            </button>
           </div>
         </div>
 
@@ -154,7 +163,12 @@ export default function App() {
         </div>
 
         {/* Modal / sheet */}
-        {modal && state && (
+        {modal?.type === 'account' && me && (
+          <Modal onClose={() => setModal(null)}>
+            <AccountSheet me={me} />
+          </Modal>
+        )}
+        {modal && modal.type !== 'account' && state && (
           <Modal onClose={() => setModal(null)}>
             {modal.type === 'payment' && (
               <PaymentForm categories={state.categories} payers={state.payers} initialCategoryId={modal.categoryId} saving={saving} onSubmit={submitPayment} />

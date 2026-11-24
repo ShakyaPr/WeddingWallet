@@ -44,3 +44,22 @@ create table if not exists payments (
 
 create index if not exists payments_category_id_idx on payments(category_id);
 create index if not exists payments_date_idx on payments(date);
+
+-- Login sessions (Keycloak) ---------------------------------------------------
+-- One row per signed-in browser. The browser's cookie holds a random token;
+-- only its SHA-256 hash is stored here, so a leaked DB dump can't be used to
+-- hijack sessions. Users themselves live in Keycloak, not in this database.
+create table if not exists sessions (
+  id                text primary key,             -- sha256(cookie token)
+  sub               text not null,                -- Keycloak user id
+  username          text not null default '',
+  email             text not null default '',
+  name              text not null default '',
+  id_token          text not null default '',     -- used as id_token_hint on logout
+  refresh_token     text,                         -- used to re-check the user with Keycloak
+  access_expires_at timestamptz not null,         -- re-check with Keycloak after this
+  expires_at        timestamptz not null,         -- hard end (Keycloak's refresh token lifetime)
+  created_at        timestamptz not null default now()
+);
+
+create index if not exists sessions_expires_at_idx on sessions(expires_at);

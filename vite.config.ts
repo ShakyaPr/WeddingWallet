@@ -4,13 +4,18 @@ import react from '@vitejs/plugin-react'
 // The SPA calls same-origin `/api/*`. In production the Node server
 // (server/index.ts) serves both the built SPA and the API from one port.
 // In local dev the API runs separately (`npm run dev:api`, port 3000) and
-// Vite proxies `/api` to it.
+// Vite proxies `/api` and the Keycloak login routes (`/auth`) to it, so
+// set APP_URL=http://localhost:5173 in .env while using `npm run dev`.
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
       '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/auth': {
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
